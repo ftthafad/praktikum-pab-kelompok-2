@@ -9,30 +9,27 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.NavKey
 import com.travelwaka.app.ui.components.*
 import com.travelwaka.app.ui.theme.*
-import com.travelwaka.app.viewmodel.WisataViewModel
+import com.travelwaka.app.viewmodel.BookmarkViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BookmarkScreen(
     currentRoute: NavKey?,
     onNavigate: (NavKey) -> Unit,
-    onWisataClick: (String) -> Unit,
-    token: String? = null
+    onWisataClick: (String) -> Unit
 ) {
-    val viewModel = remember { WisataViewModel() }
+    val context = LocalContext.current
+    val viewModel = remember { BookmarkViewModel(context) }
     val bookmarks by viewModel.bookmarks.collectAsState()
+    val isLoggedIn by viewModel.isLoggedIn.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
-
-    LaunchedEffect(token) {
-        android.util.Log.d("BookmarkScreen", "token: $token")
-        token?.let { viewModel.fetchBookmarks(it) }
-    }
 
     Scaffold(
         topBar = {
@@ -66,7 +63,7 @@ fun BookmarkScreen(
                     )
                 }
 
-                token == null -> {
+                !isLoggedIn -> {
                     // User belum login
                     Column(
                         modifier = Modifier.align(Alignment.Center),

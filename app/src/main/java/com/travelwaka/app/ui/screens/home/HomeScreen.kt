@@ -25,10 +25,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.NavKey
 import coil.compose.AsyncImage
-import com.travelwaka.app.network.model.Wisata
 import com.travelwaka.app.ui.components.*
 import com.travelwaka.app.ui.theme.*
-import com.travelwaka.app.viewmodel.WisataViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.travelwaka.app.viewmodel.HomeViewModel
 
 val bannerImages = listOf(
     "https://images.unsplash.com/photo-1596402184320-417e7178b2cd?w=800",
@@ -44,29 +44,16 @@ fun HomeScreen(
     onWisataClick: (String) -> Unit,
     onSearchClick: () -> Unit
 ) {
-    val viewModel = remember { WisataViewModel() }
+    val viewModel = viewModel<HomeViewModel>()
     val wisataList by viewModel.wisataList.collectAsState()
     val categories by viewModel.categories.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
-    var selectedCategory by remember { mutableStateOf<Int?>(null) }
+    val selectedCategoryId by viewModel.selectedCategoryId.collectAsState()
 
     val pagerState = rememberPagerState(pageCount = { bannerImages.size })
 
-    // Load data saat pertama kali
-    LaunchedEffect(Unit) {
-        viewModel.getWisata()
-        viewModel.getCategories()
-    }
 
-    // Load wisata by kategori saat kategori dipilih
-    LaunchedEffect(selectedCategory) {
-        if (selectedCategory == null) {
-            viewModel.getWisata()
-        } else {
-            viewModel.getWisataByCategory(selectedCategory!!)
-        }
-    }
 
     Scaffold(
         bottomBar = { BottomNavBar(currentRoute, onNavigate) },
@@ -192,15 +179,15 @@ fun HomeScreen(
                         item {
                             CategoryChip(
                                 label = "Semua",
-                                isSelected = selectedCategory == null,
-                                onClick = { selectedCategory = null }
+                                isSelected = selectedCategoryId == null,  // ✏️ fix di sini
+                                onClick = { viewModel.selectCategory(null) }
                             )
                         }
                         items(categories) { category ->
                             CategoryChip(
                                 label = category.name,
-                                isSelected = selectedCategory == category.id,
-                                onClick = { selectedCategory = category.id }
+                                isSelected = selectedCategoryId == category.id,  // ✏️ fix di sini
+                                onClick = { viewModel.selectCategory(category.id) }
                             )
                         }
                     }

@@ -204,8 +204,7 @@ fun AppNavigation() {
             BookmarkScreen(
                 currentRoute = currentRoute,
                 onNavigate = { navigateToTab(it) },
-                onWisataClick = { id -> navigateTo(DetailWisata(wisataId = id)) },
-                token = token?.ifEmpty { null }
+                onWisataClick = { id -> navigateTo(DetailWisata(wisataId = id)) }
             )
         }
 

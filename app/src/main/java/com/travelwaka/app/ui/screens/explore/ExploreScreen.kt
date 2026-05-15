@@ -16,9 +16,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.NavKey
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.travelwaka.app.ui.components.*
 import com.travelwaka.app.ui.theme.*
-import com.travelwaka.app.viewmodel.WisataViewModel
+import com.travelwaka.app.viewmodel.ExploreViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,36 +29,17 @@ fun ExploreScreen(
     onWisataClick: (String) -> Unit,
     onBack: () -> Unit
 ) {
-    val viewModel = remember { WisataViewModel() }
-    val wisataList by viewModel.wisataList.collectAsState()
+    // ✏️ DIUBAH: ganti WisataViewModel → ExploreViewModel
+    val viewModel = viewModel<ExploreViewModel>()
+
+    // ✏️ DIUBAH: semua state dari VM, tidak ada remember lokal
+    val filteredList by viewModel.filteredList.collectAsState()
     val categories by viewModel.categories.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val selectedCategoryId by viewModel.selectedCategoryId.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
-    var searchQuery by remember { mutableStateOf("") }
-    var selectedCategory by remember { mutableStateOf<Int?>(null) }
-    var selectedCategoryName by remember { mutableStateOf("Semua") }
-
-    // Load data saat pertama kali
-    LaunchedEffect(Unit) {
-        viewModel.getWisata()
-        viewModel.getCategories()
-    }
-
-    // Filter wisata by kategori
-    LaunchedEffect(selectedCategory) {
-        if (selectedCategory == null) {
-            viewModel.getWisata()
-        } else {
-            viewModel.getWisataByCategory(selectedCategory!!)
-        }
-    }
-
-    // Filter by search query
-    val filteredList = wisataList.filter { wisata ->
-        searchQuery.isEmpty() ||
-                wisata.name.contains(searchQuery, ignoreCase = true) ||
-                wisata.location.contains(searchQuery, ignoreCase = true)
-    }
+    // ✅ DIHAPUS: dua LaunchedEffect & var searchQuery, selectedCategory, selectedCategoryName
 
     Scaffold(
         bottomBar = { BottomNavBar(currentRoute, onNavigate) },
@@ -89,8 +71,9 @@ fun ExploreScreen(
                         )
                     }
                     OutlinedTextField(
+                        // ✏️ DIUBAH: value & onValueChange dari VM
                         value = searchQuery,
-                        onValueChange = { searchQuery = it },
+                        onValueChange = { viewModel.onSearchQueryChange(it) },
                         placeholder = { Text("Cari destinasi wisata...", color = White.copy(alpha = 0.7f)) },
                         leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null, tint = White) },
                         modifier = Modifier.fillMaxWidth(),
@@ -114,16 +97,14 @@ fun ExploreScreen(
             ) {
                 item {
                     FilterChip(
-                        selected = selectedCategory == null,
-                        onClick = {
-                            selectedCategory = null
-                            selectedCategoryName = "Semua"
-                        },
+                        // ✏️ DIUBAH: cek dari selectedCategoryId VM
+                        selected = selectedCategoryId == null,
+                        onClick = { viewModel.selectCategory(null) },
                         label = {
                             Text(
                                 "Semua",
                                 style = MaterialTheme.typography.labelMedium,
-                                color = if (selectedCategory == null) White else Primary
+                                color = if (selectedCategoryId == null) White else Primary
                             )
                         },
                         colors = FilterChipDefaults.filterChipColors(
@@ -132,7 +113,7 @@ fun ExploreScreen(
                         ),
                         border = FilterChipDefaults.filterChipBorder(
                             enabled = true,
-                            selected = selectedCategory == null,
+                            selected = selectedCategoryId == null,
                             borderColor = Primary,
                             selectedBorderColor = Primary
                         )
@@ -140,16 +121,14 @@ fun ExploreScreen(
                 }
                 items(categories) { category ->
                     FilterChip(
-                        selected = selectedCategory == category.id,
-                        onClick = {
-                            selectedCategory = category.id
-                            selectedCategoryName = category.name
-                        },
+                        // ✏️ DIUBAH: selectedCategoryName sudah tidak perlu
+                        selected = selectedCategoryId == category.id,
+                        onClick = { viewModel.selectCategory(category.id) },
                         label = {
                             Text(
                                 category.name,
                                 style = MaterialTheme.typography.labelMedium,
-                                color = if (selectedCategory == category.id) White else Primary
+                                color = if (selectedCategoryId == category.id) White else Primary
                             )
                         },
                         colors = FilterChipDefaults.filterChipColors(
@@ -158,7 +137,7 @@ fun ExploreScreen(
                         ),
                         border = FilterChipDefaults.filterChipBorder(
                             enabled = true,
-                            selected = selectedCategory == category.id,
+                            selected = selectedCategoryId == category.id,
                             borderColor = Primary,
                             selectedBorderColor = Primary
                         )

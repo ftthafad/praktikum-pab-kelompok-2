@@ -45,50 +45,6 @@ class WisataViewModel : ViewModel() {
 
     private val _bookmarkMessage = MutableStateFlow<String?>(null)
     val bookmarkMessage: StateFlow<String?> = _bookmarkMessage.asStateFlow()
-
-    fun fetchBookmarks(token: String) {
-        viewModelScope.launch {
-            try {
-                val response = ApiClient.apiService.getBookmarks("Bearer $token")
-                if (response.status) _bookmarks.value = response.data
-            } catch (e: Exception) {
-                _bookmarks.value = emptyList()
-            }
-        }
-    }
-
-    fun checkBookmark(token: String, wisataId: Int) {
-        viewModelScope.launch {
-            try {
-                val response = ApiClient.apiService.checkBookmark("Bearer $token", wisataId)
-                android.util.Log.d("Bookmark", "check response: ${response.isBookmarked}")
-                _isBookmarked.value = response.isBookmarked
-            } catch (e: Exception) {
-                android.util.Log.d("Bookmark", "check error: ${e.message}")
-                _isBookmarked.value = false
-            }
-        }
-    }
-
-    fun toggleBookmark(token: String, wisataId: Int) {
-        viewModelScope.launch {
-            try {
-                val response = ApiClient.apiService.toggleBookmark("Bearer $token", wisataId)
-                android.util.Log.d("Bookmark", "toggle response: ${response.isBookmarked}")
-                if (response.status) {
-                    _isBookmarked.value = response.isBookmarked
-                    _bookmarkMessage.value = response.message
-                }
-            } catch (e: Exception) {
-                android.util.Log.d("Bookmark", "toggle error: ${e.message}")
-                _bookmarkMessage.value = "Gagal mengubah bookmark"
-            }
-        }
-    }
-
-    fun clearBookmarkMessage() {
-        _bookmarkMessage.value = null
-    }
     // Ambil semua wisata
     fun getWisata() {
         viewModelScope.launch {
