@@ -1,11 +1,9 @@
 package com.travelwaka.app.ui.screens.profile
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -13,52 +11,33 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.travelwaka.app.datastore.TokenDataStore
+import com.travelwaka.app.network.model.Pengajuan
 import com.travelwaka.app.ui.theme.*
-
-data class NotifikasiItem(
-    val id: String,
-    val title: String,
-    val message: String,
-    val date: String,
-    val status: String, // "pending", "approved", "rejected"
-    val isRead: Boolean = false
-)
-
-val dummyNotifikasi = listOf(
-    NotifikasiItem(
-        id = "1",
-        title = "Pengajuan Diterima",
-        message = "Selamat! Pengajuan kamu sebagai pengelola wisata telah disetujui. Kamu sekarang bisa menambahkan destinasi wisata.",
-        date = "17 Apr 2025",
-        status = "approved",
-        isRead = false
-    ),
-    NotifikasiItem(
-        id = "2",
-        title = "Pengajuan Sedang Ditinjau",
-        message = "Pengajuan kamu sebagai pengelola wisata sedang dalam proses peninjauan oleh admin kami.",
-        date = "15 Apr 2025",
-        status = "pending",
-        isRead = true
-    ),
-    NotifikasiItem(
-        id = "3",
-        title = "Pengajuan Ditolak",
-        message = "Maaf, pengajuan kamu sebagai pengelola wisata ditolak. Alasan: Data yang diberikan kurang lengkap. Silakan ajukan kembali.",
-        date = "10 Apr 2025",
-        status = "rejected",
-        isRead = true
-    )
-)
+import com.travelwaka.app.viewmodel.PengajuanViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotifikasiScreen(
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    viewModel: PengajuanViewModel = remember { PengajuanViewModel() }
 ) {
+    val context = LocalContext.current
+    val tokenDataStore = remember { TokenDataStore.getInstance(context) }
+    val token by tokenDataStore.token.collectAsState(initial = null)
+
+    val pengajuanStatus by viewModel.pengajuanStatus.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+
+    // Load status pengajuan saat screen dibuka
+    LaunchedEffect(token) {
+        token?.let { viewModel.getPengajuanStatus(it) }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -83,34 +62,58 @@ fun NotifikasiScreen(
         },
         containerColor = Background
     ) { paddingValues ->
-        if (dummyNotifikasi.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("🔔", style = MaterialTheme.typography.displayLarge)
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        "Belum ada notifikasi",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = TextPrimary
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            when {
+                isLoading -> {
+                    CircularProgressIndicator(
+                        modifier = Modifier.align(Alignment.Center),
+                        color = Primary
                     )
                 }
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(dummyNotifikasi) { notif ->
-                    NotifikasiCard(notif = notif)
+
+                pengajuanStatus == null -> {
+                    // Belum pernah mengajukan
+                    Column(
+                        modifier = Modifier.align(Alignment.Center),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text("🔔", style = MaterialTheme.typography.displayLarge)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            "Belum ada notifikasi",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = TextPrimary
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            "Kamu belum pernah mengajukan\npendaftaran pengelola",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = TextSecondary
+                        )
+                    }
+                }
+
+                else -> {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = 20.dp, vertical = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(
+                            text = "Status Pengajuan Pengelola",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary
+                        )
+                        PengajuanStatusCard(pengajuan = pengajuanStatus!!)
+                    }
                 }
             }
         }
@@ -118,110 +121,119 @@ fun NotifikasiScreen(
 }
 
 @Composable
-fun NotifikasiCard(notif: NotifikasiItem) {
-    val statusColor = when (notif.status) {
+fun PengajuanStatusCard(pengajuan: Pengajuan) {
+    val statusColor = when (pengajuan.status) {
         "approved" -> SuccessColor
         "rejected" -> ErrorColor
         else -> PendingColor
     }
-    val statusIcon: ImageVector = when (notif.status) {
+    val statusIcon: ImageVector = when (pengajuan.status) {
         "approved" -> Icons.Filled.CheckCircle
         "rejected" -> Icons.Filled.Cancel
         else -> Icons.Filled.HourglassEmpty
     }
-    val statusLabel = when (notif.status) {
+    val statusLabel = when (pengajuan.status) {
         "approved" -> "Disetujui"
         "rejected" -> "Ditolak"
-        else -> "Menunggu"
+        else -> "Menunggu Review"
+    }
+    val statusMessage = when (pengajuan.status) {
+        "approved" -> "Selamat! Pengajuanmu telah disetujui. Kamu sekarang bisa menambahkan destinasi wisata."
+        "rejected" -> "Maaf, pengajuanmu ditolak. Kamu bisa mengajukan kembali melalui halaman Profil."
+        else -> "Pengajuanmu sedang dalam proses peninjauan oleh admin. Mohon tunggu."
     }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (!notif.isRead) White else White.copy(alpha = 0.7f)
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (!notif.isRead) 4.dp else 1.dp)
+        colors = CardDefaults.cardColors(containerColor = White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            // Status icon
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .background(statusColor.copy(alpha = 0.12f), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+
+            // Header status
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = statusIcon,
                     contentDescription = null,
                     tint = statusColor,
-                    modifier = Modifier.size(26.dp)
+                    modifier = Modifier.size(28.dp)
                 )
+                Spacer(modifier = Modifier.width(10.dp))
+                Column {
+                    Text(
+                        text = statusLabel,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = statusColor
+                    )
+                    pengajuan.createdAt?.let {
+                        Text(
+                            text = it.take(10), // ambil tanggal saja: "2025-04-17"
+                            style = MaterialTheme.typography.labelSmall,
+                            color = TextSecondary
+                        )
+                    }
+                }
             }
 
-            Column(modifier = Modifier.weight(1f)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+            Divider(modifier = Modifier.padding(vertical = 12.dp), color = DividerColor)
+
+            // Info pengajuan
+            LabelValue(label = "Nama Usaha", value = pengajuan.namaUsaha)
+            Spacer(modifier = Modifier.height(8.dp))
+            LabelValue(label = "Deskripsi", value = pengajuan.deskripsi)
+            Spacer(modifier = Modifier.height(8.dp))
+            LabelValue(label = "Alasan", value = pengajuan.alasan)
+
+            // Catatan admin kalau rejected
+            if (pengajuan.status == "rejected" && !pengajuan.catatanAdmin.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = ErrorColor.copy(alpha = 0.08f)
                 ) {
-                    Text(
-                        text = notif.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = if (!notif.isRead) FontWeight.Bold else FontWeight.SemiBold,
-                        color = TextPrimary
-                    )
-                    if (!notif.isRead) {
-                        Box(
-                            modifier = Modifier
-                                .size(8.dp)
-                                .background(Primary, CircleShape)
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = notif.message,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondary,
-                    maxLines = 3
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = notif.date,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = TextSecondary
-                    )
-                    Surface(
-                        shape = RoundedCornerShape(20.dp),
-                        color = statusColor.copy(alpha = 0.12f)
-                    ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
                         Text(
-                            text = statusLabel,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = statusColor,
+                            text = "Catatan Admin:",
+                            style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                            color = ErrorColor
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = pengajuan.catatanAdmin,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = ErrorColor
                         )
                     }
                 }
             }
+
+            Divider(modifier = Modifier.padding(vertical = 12.dp), color = DividerColor)
+
+            // Pesan status
+            Text(
+                text = statusMessage,
+                style = MaterialTheme.typography.bodySmall,
+                color = TextSecondary
+            )
         }
     }
 }
 
-@Preview(showBackground = true)
 @Composable
-fun NotifikasiScreenPreview() {
-    TravelWakaTheme {
-        NotifikasiScreen(onBack = {})
+private fun LabelValue(label: String, value: String) {
+    Column {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = TextSecondary
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            color = TextPrimary
+        )
     }
 }

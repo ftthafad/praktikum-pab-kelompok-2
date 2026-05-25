@@ -10,22 +10,57 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.travelwaka.app.datastore.TokenDataStore
 import com.travelwaka.app.ui.components.RatingBar
 import com.travelwaka.app.ui.theme.*
+import com.travelwaka.app.viewmodel.ReviewViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReviewScreen(
     wisataId: String,
     onBack: () -> Unit,
-    onSubmit: () -> Unit
+    onSubmit: () -> Unit,
+    viewModel: ReviewViewModel = remember { ReviewViewModel() }
 ) {
+    val context = LocalContext.current
+    val tokenDataStore = remember { TokenDataStore.getInstance(context) }
+    val token by tokenDataStore.token.collectAsState(initial = null)
+
+    val myReview by viewModel.myReview.collectAsState()
+    val isSubmitting by viewModel.isSubmitting.collectAsState()
+    val errorMessage by viewModel.errorMessage.collectAsState()
+    val successMessage by viewModel.successMessage.collectAsState()
+
+    // Pre-fill dari review yang sudah ada (jika user pernah review)
     var rating by remember { mutableStateOf(0) }
     var reviewText by remember { mutableStateOf("") }
+
+    // Cek review existing saat screen dibuka
+    LaunchedEffect(token) {
+        token?.let { viewModel.checkMyReview(it, wisataId.toInt()) }
+    }
+
+    // Pre-fill form kalau sudah pernah review
+    LaunchedEffect(myReview) {
+        myReview?.let {
+            rating = it.rating
+            reviewText = it.comment ?: ""
+        }
+    }
+
+    // Navigasi balik setelah sukses submit
+    LaunchedEffect(successMessage) {
+        if (successMessage != null) {
+            onSubmit()
+            viewModel.clearMessages()
+        }
+    }
 
     val ratingLabel = when (rating) {
         1 -> "Sangat Buruk"
@@ -36,12 +71,23 @@ fun ReviewScreen(
         else -> "Pilih rating"
     }
 
+    val isEditMode = myReview != null
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // Tampilkan error via snackbar
+    LaunchedEffect(errorMessage) {
+        errorMessage?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearMessages()
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Text(
-                        "Tulis Ulasan",
+                        if (isEditMode) "Edit Ulasan" else "Tulis Ulasan",
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold
                     )
@@ -58,6 +104,7 @@ fun ReviewScreen(
                 )
             )
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = Background
     ) { paddingValues ->
         Column(
@@ -115,7 +162,7 @@ fun ReviewScreen(
 
                     OutlinedTextField(
                         value = reviewText,
-                        onValueChange = { reviewText = it },
+                        onValueChange = { if (it.length <= 500) reviewText = it },
                         label = { Text("Tulis ulasanmu...") },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -126,7 +173,8 @@ fun ReviewScreen(
                             focusedLabelColor = Primary,
                             cursorColor = Primary
                         ),
-                        maxLines = 6
+                        maxLines = 6,
+                        enabled = !isSubmitting
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
@@ -141,21 +189,41 @@ fun ReviewScreen(
             Spacer(modifier = Modifier.height(28.dp))
 
             Button(
-                onClick = onSubmit,
+                onClick = {
+                    token?.let {
+                        viewModel.submitReview(
+                            token = it,
+                            wisataId = wisataId.toInt(),
+                            rating = rating,
+                            comment = reviewText.ifBlank { null },
+                            onSuccess = {} // navigasi di-handle via LaunchedEffect successMessage
+                        )
+                    }
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
                 shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Primary),
-                enabled = rating > 0 && reviewText.isNotBlank()
+                enabled = rating > 0 && !isSubmitting
             ) {
-                Text(
-                    "Kirim Ulasan",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
+                if (isSubmitting) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = White,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text(
+                        if (isEditMode) "Simpan Perubahan" else "Kirim Ulasan",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
+
             Spacer(modifier = Modifier.height(8.dp))
+
             OutlinedButton(
                 onClick = onBack,
                 modifier = Modifier
@@ -163,7 +231,8 @@ fun ReviewScreen(
                     .height(52.dp),
                 shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = Primary),
-                border = androidx.compose.foundation.BorderStroke(1.5.dp, Primary)
+                border = androidx.compose.foundation.BorderStroke(1.5.dp, Primary),
+                enabled = !isSubmitting
             ) {
                 Text("Batal", style = MaterialTheme.typography.titleMedium)
             }

@@ -29,19 +29,8 @@ import com.travelwaka.app.ui.theme.*
 // ✏️ DIUBAH: import DetailWisataViewModel, hapus WisataViewModel
 import com.travelwaka.app.viewmodel.DetailWisataViewModel
 import com.travelwaka.app.ui.components.OsmMapView
-
-data class ReviewItem(
-    val userName: String,
-    val rating: Int,
-    val comment: String,
-    val date: String
-)
-
-val dummyReviews = listOf(
-    ReviewItem("Budi Santoso", 5, "Tempat yang luar biasa! Pemandangannya sangat indah dan bikin betah.", "12 Apr 2025"),
-    ReviewItem("Siti Rahayu", 4, "Bagus banget, tapi parkirannya agak susah kalau weekend.", "5 Apr 2025"),
-    ReviewItem("Ahmad Fauzi", 5, "Wajib dikunjungi kalau ke Jawa Tengah!", "28 Mar 2025")
-)
+import com.travelwaka.app.network.model.Review
+import com.travelwaka.app.viewmodel.ReviewViewModel
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -56,6 +45,8 @@ fun DetailWisataScreen(
     val context = LocalContext.current
     // ✏️ DIUBAH: pakai DetailWisataViewModel
     val viewModel = remember { DetailWisataViewModel(context) }
+    val reviewViewModel = remember { ReviewViewModel() }
+    val reviews by reviewViewModel.reviews.collectAsState()
 
     val wisata by viewModel.wisata.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
@@ -70,6 +61,7 @@ fun DetailWisataScreen(
     // ✏️ DIUBAH: cukup satu LaunchedEffect, token tidak perlu dikirim manual
     LaunchedEffect(wisataId) {
         viewModel.loadDetail(wisataId.toIntOrNull() ?: 0)
+        reviewViewModel.getReviews(wisataId.toIntOrNull() ?: 0)
     }
 
     LaunchedEffect(bookmarkMessage) {
@@ -377,9 +369,27 @@ fun DetailWisataScreen(
                     }
 
                     // List review (masih dummy, nanti diganti ReviewViewModel)
-                    items(dummyReviews) { review ->
-                        ReviewCard(review = review, modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp))
+                    if (reviews.isEmpty()) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 20.dp, vertical = 16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    "Belum ada ulasan. Jadilah yang pertama!",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = TextSecondary
+                                )
+                            }
+                        }
+                    } else {
+                        items(reviews, key = { it.id }) { review ->
+                            ReviewCard(review = review, modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp))
+                        }
                     }
+
                 }
             }
         }
@@ -408,7 +418,7 @@ fun InfoChip(
 }
 
 @Composable
-fun ReviewCard(review: ReviewItem, modifier: Modifier = Modifier) {
+fun ReviewCard(review: Review, modifier: Modifier = Modifier) {
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
@@ -421,17 +431,47 @@ fun ReviewCard(review: ReviewItem, modifier: Modifier = Modifier) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(review.userName, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = TextPrimary)
-                Row {
-                    repeat(review.rating) {
-                        Icon(Icons.Filled.Star, contentDescription = null, tint = StarColor, modifier = Modifier.size(14.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(Primary, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = (review.user?.name ?: "?").first().toString(),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = White,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Column {
+                        Text(
+                            review.user?.name ?: "Pengguna",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = TextPrimary
+                        )
+                        Text(
+                            review.createdAt?.take(10) ?: "",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextSecondary
+                        )
                     }
                 }
+                DisplayRatingBar(rating = review.rating.toFloat())
             }
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(review.comment, style = MaterialTheme.typography.bodySmall, color = TextSecondary)
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(review.date, style = MaterialTheme.typography.labelSmall, color = TextSecondary.copy(alpha = 0.6f))
+            if (!review.comment.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    review.comment,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TextSecondary
+                )
+            }
         }
     }
 }

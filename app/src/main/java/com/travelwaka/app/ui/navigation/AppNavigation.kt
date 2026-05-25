@@ -251,7 +251,9 @@ fun AppNavigation() {
         }
 
         entry<DashboardApproval> {
-            DashboardApprovalScreen()
+            DashboardApprovalScreen(
+                onLogout = { navigateAndClearTo(Login) }
+            )
         }
     }
 

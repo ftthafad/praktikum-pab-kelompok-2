@@ -10,30 +10,70 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.travelwaka.app.datastore.TokenDataStore
 import com.travelwaka.app.ui.theme.*
+import com.travelwaka.app.viewmodel.PengajuanViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FormPengajuanScreen(
     onBack: () -> Unit,
-    onSubmit: () -> Unit
+    onSubmit: () -> Unit,
+    viewModel: PengajuanViewModel = remember { PengajuanViewModel() }
 ) {
+    val context = LocalContext.current
+    val tokenDataStore = remember { TokenDataStore.getInstance(context) }
+    val token by tokenDataStore.token.collectAsState(initial = null)
+
+    val isSubmitting by viewModel.isSubmitting.collectAsState()
+    val errorMessage by viewModel.errorMessage.collectAsState()
+    val successMessage by viewModel.successMessage.collectAsState()
+
     var namaUsaha by remember { mutableStateOf("") }
     var deskripsi by remember { mutableStateOf("") }
-    var alamat by remember { mutableStateOf("") }
-    var noTelepon by remember { mutableStateOf("") }
     var alasan by remember { mutableStateOf("") }
-    var showDialog by remember { mutableStateOf(false) }
+    var showSuccessDialog by remember { mutableStateOf(false) }
 
-    if (showDialog) {
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // Tampilkan error via snackbar
+    LaunchedEffect(errorMessage) {
+        errorMessage?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearMessages()
+        }
+    }
+
+    // Tampilkan dialog sukses setelah API berhasil
+    LaunchedEffect(successMessage) {
+        if (successMessage != null) {
+            showSuccessDialog = true
+            viewModel.clearMessages()
+        }
+    }
+
+    // Dialog sukses
+    if (showSuccessDialog) {
         AlertDialog(
-            onDismissRequest = { showDialog = false },
-            icon = { Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = SuccessColor, modifier = Modifier.size(48.dp)) },
+            onDismissRequest = {},
+            icon = {
+                Icon(
+                    Icons.Filled.CheckCircle,
+                    contentDescription = null,
+                    tint = SuccessColor,
+                    modifier = Modifier.size(48.dp)
+                )
+            },
             title = {
-                Text("Pengajuan Terkirim!", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Text(
+                    "Pengajuan Terkirim!",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
             },
             text = {
                 Text(
@@ -44,9 +84,14 @@ fun FormPengajuanScreen(
             },
             confirmButton = {
                 Button(
-                    onClick = { showDialog = false; onSubmit() },
+                    onClick = {
+                        showSuccessDialog = false
+                        onSubmit()
+                    },
                     colors = ButtonDefaults.buttonColors(containerColor = Primary)
-                ) { Text("OK") }
+                ) {
+                    Text("OK")
+                }
             }
         )
     }
@@ -55,10 +100,14 @@ fun FormPengajuanScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text("Ajukan Jadi Pengelola", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    Text(
+                        "Ajukan Jadi Pengelola",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold
+                    )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = onBack, enabled = !isSubmitting) {
                         Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
@@ -69,6 +118,7 @@ fun FormPengajuanScreen(
                 )
             )
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = Background
     ) { paddingValues ->
         Column(
@@ -90,7 +140,12 @@ fun FormPengajuanScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.Top
                 ) {
-                    Icon(Icons.Filled.Info, contentDescription = null, tint = Primary, modifier = Modifier.size(20.dp))
+                    Icon(
+                        Icons.Filled.Info,
+                        contentDescription = null,
+                        tint = Primary,
+                        modifier = Modifier.size(20.dp)
+                    )
                     Text(
                         text = "Pengajuan akan ditinjau oleh admin. Proses verifikasi membutuhkan 1-3 hari kerja.",
                         style = MaterialTheme.typography.bodySmall,
@@ -99,29 +154,23 @@ fun FormPengajuanScreen(
                 }
             }
 
+            // Nama Usaha
             FormField(
                 value = namaUsaha,
                 onValueChange = { namaUsaha = it },
                 label = "Nama Usaha / Tempat Wisata",
-                icon = Icons.Filled.Store
+                icon = Icons.Filled.Store,
+                enabled = !isSubmitting
             )
-            FormField(
-                value = alamat,
-                onValueChange = { alamat = it },
-                label = "Alamat Lengkap",
-                icon = Icons.Filled.LocationOn
-            )
-            FormField(
-                value = noTelepon,
-                onValueChange = { noTelepon = it },
-                label = "Nomor Telepon",
-                icon = Icons.Filled.Phone
-            )
+
+            // Deskripsi
             OutlinedTextField(
                 value = deskripsi,
                 onValueChange = { deskripsi = it },
                 label = { Text("Deskripsi Tempat Wisata") },
-                leadingIcon = { Icon(Icons.Filled.Description, contentDescription = null, tint = Primary) },
+                leadingIcon = {
+                    Icon(Icons.Filled.Description, contentDescription = null, tint = Primary)
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(120.dp),
@@ -131,13 +180,18 @@ fun FormPengajuanScreen(
                     focusedLabelColor = Primary,
                     cursorColor = Primary
                 ),
-                maxLines = 4
+                maxLines = 4,
+                enabled = !isSubmitting
             )
+
+            // Alasan
             OutlinedTextField(
                 value = alasan,
                 onValueChange = { alasan = it },
                 label = { Text("Alasan Mengajukan") },
-                leadingIcon = { Icon(Icons.Filled.Edit, contentDescription = null, tint = Primary) },
+                leadingIcon = {
+                    Icon(Icons.Filled.Edit, contentDescription = null, tint = Primary)
+                },
                 placeholder = { Text("Jelaskan mengapa kamu ingin menjadi pengelola wisata...") },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -148,20 +202,44 @@ fun FormPengajuanScreen(
                     focusedLabelColor = Primary,
                     cursorColor = Primary
                 ),
-                maxLines = 4
+                maxLines = 4,
+                enabled = !isSubmitting
             )
 
             Spacer(modifier = Modifier.height(8.dp))
+
             Button(
-                onClick = { showDialog = true },
+                onClick = {
+                    token?.let {
+                        viewModel.submitPengajuan(
+                            token = it,
+                            namaUsaha = namaUsaha,
+                            deskripsi = deskripsi,
+                            alasan = alasan,
+                            onSuccess = {} // handled via LaunchedEffect successMessage
+                        )
+                    }
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
                 shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Primary),
-                enabled = namaUsaha.isNotBlank() && deskripsi.isNotBlank() && alasan.isNotBlank()
+                enabled = namaUsaha.isNotBlank() && deskripsi.isNotBlank() && alasan.isNotBlank() && !isSubmitting
             ) {
-                Text("Kirim Pengajuan", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                if (isSubmitting) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = White,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text(
+                        "Kirim Pengajuan",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
     }
@@ -172,7 +250,8 @@ fun FormField(
     value: String,
     onValueChange: (String) -> Unit,
     label: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    enabled: Boolean = true
 ) {
     OutlinedTextField(
         value = value,
@@ -186,7 +265,8 @@ fun FormField(
             focusedLabelColor = Primary,
             cursorColor = Primary
         ),
-        singleLine = true
+        singleLine = true,
+        enabled = enabled
     )
 }
 
