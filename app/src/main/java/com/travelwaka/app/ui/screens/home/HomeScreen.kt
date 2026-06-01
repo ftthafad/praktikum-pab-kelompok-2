@@ -42,8 +42,7 @@ fun HomeScreen(
     currentRoute: NavKey?,
     onNavigate: (NavKey) -> Unit,
     onWisataClick: (String) -> Unit,
-    onSearchClick: () -> Unit,
-    onNotifikasi: () -> Unit
+    onSearchClick: () -> Unit
 ) {
     val viewModel = viewModel<HomeViewModel>()
     val wisataList by viewModel.wisataList.collectAsState()
@@ -93,7 +92,7 @@ fun HomeScreen(
                         IconButton(onClick = onSearchClick) {
                             Icon(Icons.Filled.Search, contentDescription = "Search", tint = White)
                         }
-                        IconButton(onClick = onNotifikasi ) {
+                        IconButton(onClick = {}) {
                             Icon(Icons.Filled.Notifications, contentDescription = "Notifikasi", tint = White)
                         }
                     }
@@ -297,8 +296,7 @@ fun HomeScreenPreview() {
             currentRoute = null,
             onNavigate = {},
             onWisataClick = {},
-            onSearchClick = {},
-            onNotifikasi = {}
+            onSearchClick = {}
         )
     }
 }
