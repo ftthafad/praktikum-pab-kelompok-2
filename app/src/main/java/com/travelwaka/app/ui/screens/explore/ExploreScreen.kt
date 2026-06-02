@@ -16,7 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.NavKey
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.travelwaka.app.ui.components.*
 import com.travelwaka.app.ui.theme.*
 import com.travelwaka.app.viewmodel.ExploreViewModel
@@ -29,8 +29,8 @@ fun ExploreScreen(
     onWisataClick: (String) -> Unit,
     onBack: () -> Unit
 ) {
-    // ✏️ DIUBAH: ganti WisataViewModel → ExploreViewModel
-    val viewModel = viewModel<ExploreViewModel>()
+    // ✏️ DIUBAH: pakai Hilt DI
+    val viewModel: ExploreViewModel = hiltViewModel()
 
     // ✏️ DIUBAH: semua state dari VM, tidak ada remember lokal
     val filteredList by viewModel.filteredList.collectAsState()

@@ -2,17 +2,20 @@ package com.travelwaka.app.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.travelwaka.app.network.ApiClient
+import com.travelwaka.app.network.ApiService
 import com.travelwaka.app.network.model.Pengajuan
 import com.travelwaka.app.network.model.RejectRequest
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class DashboardApprovalViewModel : ViewModel() {
-
-    private val apiService = ApiClient.apiService
+@HiltViewModel
+class DashboardApprovalViewModel @Inject constructor(
+    private val apiService: ApiService
+) : ViewModel() {
 
     private val _pengajuanList = MutableStateFlow<List<Pengajuan>>(emptyList())
     val pengajuanList: StateFlow<List<Pengajuan>> = _pengajuanList.asStateFlow()

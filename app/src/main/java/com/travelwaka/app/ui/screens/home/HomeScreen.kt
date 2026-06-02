@@ -27,7 +27,7 @@ import androidx.navigation3.runtime.NavKey
 import coil.compose.AsyncImage
 import com.travelwaka.app.ui.components.*
 import com.travelwaka.app.ui.theme.*
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.travelwaka.app.viewmodel.HomeViewModel
 
 val bannerImages = listOf(
@@ -45,7 +45,7 @@ fun HomeScreen(
     onSearchClick: () -> Unit,
     onNotifikasi: () -> Unit
 ) {
-    val viewModel = viewModel<HomeViewModel>()
+    val viewModel: HomeViewModel = hiltViewModel()
     val wisataList by viewModel.wisataList.collectAsState()
     val categories by viewModel.categories.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()

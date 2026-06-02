@@ -2,9 +2,10 @@ package com.travelwaka.app.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.travelwaka.app.network.ApiClient
+import com.travelwaka.app.network.ApiService
 import com.travelwaka.app.network.model.Category
 import com.travelwaka.app.network.model.Wisata
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -12,10 +13,12 @@ import com.travelwaka.app.network.model.BookmarkItem
 import com.travelwaka.app.network.model.BookmarkStatusResponse
 import com.travelwaka.app.network.model.BookmarkListResponse
 import kotlinx.coroutines.flow.asStateFlow
+import javax.inject.Inject
 
-class WisataViewModel : ViewModel() {
-
-    private val apiService = ApiClient.apiService
+@HiltViewModel
+class WisataViewModel @Inject constructor(
+    private val apiService: ApiService
+) : ViewModel() {
 
     // State wisata list
     private val _wisataList = MutableStateFlow<List<Wisata>>(emptyList())

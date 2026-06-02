@@ -2,9 +2,10 @@ package com.travelwaka.app.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.travelwaka.app.network.ApiClient
+import com.travelwaka.app.network.ApiService
 import com.travelwaka.app.network.model.Category
 import com.travelwaka.app.network.model.Wisata
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -12,10 +13,12 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class ExploreViewModel : ViewModel() {
-
-    private val apiService = ApiClient.apiService
+@HiltViewModel
+class ExploreViewModel @Inject constructor(
+    private val apiService: ApiService
+) : ViewModel() {
 
     // --- State: semua wisata dari API (sebelum difilter search) ---
     private val _wisataList = MutableStateFlow<List<Wisata>>(emptyList())

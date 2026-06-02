@@ -4,9 +4,10 @@ import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.travelwaka.app.network.ApiClient
+import com.travelwaka.app.network.ApiService
 import com.travelwaka.app.network.model.Wisata
 import com.travelwaka.app.network.model.WisataRequest
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,10 +15,12 @@ import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import javax.inject.Inject
 
-class PengelolaWisataViewModel : ViewModel() {
-
-    private val apiService = ApiClient.apiService
+@HiltViewModel
+class PengelolaWisataViewModel @Inject constructor(
+    private val apiService: ApiService
+) : ViewModel() {
 
     private val _wisataList = MutableStateFlow<List<Wisata>>(emptyList())
     val wisataList: StateFlow<List<Wisata>> = _wisataList.asStateFlow()

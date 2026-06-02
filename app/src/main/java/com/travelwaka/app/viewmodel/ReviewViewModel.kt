@@ -2,17 +2,20 @@ package com.travelwaka.app.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.travelwaka.app.network.ApiClient
+import com.travelwaka.app.network.ApiService
 import com.travelwaka.app.network.model.Review
 import com.travelwaka.app.network.model.ReviewRequest
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class ReviewViewModel : ViewModel() {
-
-    private val apiService = ApiClient.apiService
+@HiltViewModel
+class ReviewViewModel @Inject constructor(
+    private val apiService: ApiService
+) : ViewModel() {
 
     // Daftar review publik untuk sebuah wisata
     private val _reviews = MutableStateFlow<List<Review>>(emptyList())

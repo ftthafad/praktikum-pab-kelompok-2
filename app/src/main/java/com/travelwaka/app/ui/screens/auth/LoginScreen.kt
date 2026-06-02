@@ -26,6 +26,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.travelwaka.app.ui.theme.*
 import com.travelwaka.app.viewmodel.AuthViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 
 @Composable
 fun LoginScreen(
@@ -33,8 +34,7 @@ fun LoginScreen(
     onNavigateToRegister: () -> Unit,
     onSkip: () -> Unit
 ) {
-    val context = LocalContext.current
-    val viewModel = remember { AuthViewModel(context) }
+    val viewModel: AuthViewModel = hiltViewModel()
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }

@@ -2,17 +2,20 @@ package com.travelwaka.app.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.travelwaka.app.network.ApiClient
+import com.travelwaka.app.network.ApiService
 import com.travelwaka.app.network.model.Pengajuan
 import com.travelwaka.app.network.model.PengajuanRequest
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class PengajuanViewModel : ViewModel() {
-
-    private val apiService = ApiClient.apiService
+@HiltViewModel
+class PengajuanViewModel @Inject constructor(
+    private val apiService: ApiService
+) : ViewModel() {
 
     // Status pengajuan user yang sedang login
     private val _pengajuanStatus = MutableStateFlow<Pengajuan?>(null)

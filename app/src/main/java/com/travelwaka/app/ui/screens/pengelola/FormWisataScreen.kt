@@ -31,6 +31,7 @@ import com.travelwaka.app.ui.screens.profile.FormField
 import com.travelwaka.app.ui.theme.*
 import com.travelwaka.app.viewmodel.PengelolaWisataViewModel
 import com.travelwaka.app.viewmodel.WisataViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,8 +39,8 @@ fun FormWisataScreen(
     wisataId: String,
     onBack: () -> Unit,
     onSave: () -> Unit,
-    pengelolaViewModel: PengelolaWisataViewModel = remember { PengelolaWisataViewModel() },
-    wisataViewModel: WisataViewModel = remember { WisataViewModel() }
+    pengelolaViewModel: PengelolaWisataViewModel = hiltViewModel(),
+    wisataViewModel: WisataViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val tokenDataStore = remember { TokenDataStore.getInstance(context) }

@@ -17,13 +17,14 @@ import androidx.compose.ui.unit.dp
 import com.travelwaka.app.datastore.TokenDataStore
 import com.travelwaka.app.ui.theme.*
 import com.travelwaka.app.viewmodel.PengajuanViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FormPengajuanScreen(
     onBack: () -> Unit,
     onSubmit: () -> Unit,
-    viewModel: PengajuanViewModel = remember { PengajuanViewModel() }
+    viewModel: PengajuanViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val tokenDataStore = remember { TokenDataStore.getInstance(context) }

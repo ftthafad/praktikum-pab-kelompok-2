@@ -21,6 +21,7 @@ import androidx.navigation3.runtime.NavKey
 import com.travelwaka.app.ui.components.BottomNavBar
 import com.travelwaka.app.ui.theme.*
 import com.travelwaka.app.viewmodel.AuthViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,8 +33,7 @@ fun ProfileScreen(
     onNotifikasi: () -> Unit,
     onLogout: () -> Unit
 ) {
-    val context = LocalContext.current
-    val viewModel = remember { AuthViewModel(context) }
+    val viewModel: AuthViewModel = hiltViewModel()
 
     // Ambil data dari DataStore
     val userName by viewModel.userName.collectAsState(initial = "")

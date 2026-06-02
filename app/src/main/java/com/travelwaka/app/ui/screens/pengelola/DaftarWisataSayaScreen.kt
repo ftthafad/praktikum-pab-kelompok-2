@@ -21,6 +21,7 @@ import com.travelwaka.app.datastore.TokenDataStore
 import com.travelwaka.app.network.model.Wisata
 import com.travelwaka.app.ui.theme.*
 import com.travelwaka.app.viewmodel.PengelolaWisataViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,7 +29,7 @@ fun DaftarWisataSayaScreen(
     onBack: () -> Unit,
     onTambahWisata: () -> Unit,
     onEditWisata: (String) -> Unit,
-    viewModel: PengelolaWisataViewModel = remember { PengelolaWisataViewModel() }
+    viewModel: PengelolaWisataViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val tokenDataStore = remember { TokenDataStore.getInstance(context) }

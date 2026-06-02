@@ -17,6 +17,7 @@ import androidx.navigation3.runtime.NavKey
 import com.travelwaka.app.ui.components.*
 import com.travelwaka.app.ui.theme.*
 import com.travelwaka.app.viewmodel.BookmarkViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -25,8 +26,7 @@ fun BookmarkScreen(
     onNavigate: (NavKey) -> Unit,
     onWisataClick: (String) -> Unit
 ) {
-    val context = LocalContext.current
-    val viewModel = remember { BookmarkViewModel(context) }
+    val viewModel: BookmarkViewModel = hiltViewModel()
     val bookmarks by viewModel.bookmarks.collectAsState()
     val isLoggedIn by viewModel.isLoggedIn.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()

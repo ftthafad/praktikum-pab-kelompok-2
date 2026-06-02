@@ -21,15 +21,16 @@ import com.travelwaka.app.network.model.Pengajuan
 import com.travelwaka.app.ui.theme.*
 import com.travelwaka.app.viewmodel.AuthViewModel
 import com.travelwaka.app.viewmodel.DashboardApprovalViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardApprovalScreen(
     onLogout: () -> Unit = {},
-    viewModel: DashboardApprovalViewModel = remember { DashboardApprovalViewModel() }
+    viewModel: DashboardApprovalViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
-    val authViewModel = remember { AuthViewModel(context) }
+    val authViewModel: AuthViewModel = hiltViewModel()
     val tokenDataStore = remember { TokenDataStore.getInstance(context) }
     val token by tokenDataStore.token.collectAsState(initial = null)
 

@@ -31,6 +31,7 @@ import com.travelwaka.app.viewmodel.DetailWisataViewModel
 import com.travelwaka.app.ui.components.OsmMapView
 import com.travelwaka.app.network.model.Review
 import com.travelwaka.app.viewmodel.ReviewViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -43,9 +44,9 @@ fun DetailWisataScreen(
     token: String? = null
 ) {
     val context = LocalContext.current
-    // ✏️ DIUBAH: pakai DetailWisataViewModel
-    val viewModel = remember { DetailWisataViewModel(context) }
-    val reviewViewModel = remember { ReviewViewModel() }
+    // ✏️ DIUBAH: pakai Hilt DI
+    val viewModel: DetailWisataViewModel = hiltViewModel()
+    val reviewViewModel: ReviewViewModel = hiltViewModel()
     val reviews by reviewViewModel.reviews.collectAsState()
 
     val wisata by viewModel.wisata.collectAsState()

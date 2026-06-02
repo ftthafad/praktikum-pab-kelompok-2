@@ -19,6 +19,7 @@ import com.travelwaka.app.datastore.TokenDataStore
 import com.travelwaka.app.ui.components.RatingBar
 import com.travelwaka.app.ui.theme.*
 import com.travelwaka.app.viewmodel.ReviewViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -26,7 +27,7 @@ fun ReviewScreen(
     wisataId: String,
     onBack: () -> Unit,
     onSubmit: () -> Unit,
-    viewModel: ReviewViewModel = remember { ReviewViewModel() }
+    viewModel: ReviewViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val tokenDataStore = remember { TokenDataStore.getInstance(context) }

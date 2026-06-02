@@ -4,17 +4,22 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.travelwaka.app.datastore.TokenDataStore
-import com.travelwaka.app.network.ApiClient
+import com.travelwaka.app.network.ApiService
 import com.travelwaka.app.network.model.Wisata
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class DetailWisataViewModel(private val context: Context) : ViewModel() {
-
-    private val apiService = ApiClient.apiService
+@HiltViewModel
+class DetailWisataViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
+    private val apiService: ApiService
+) : ViewModel() {
     private val tokenDataStore = TokenDataStore.getInstance(context)
 
     // --- State: data detail wisata ---

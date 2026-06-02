@@ -12,7 +12,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 import javax.inject.Singleton
 
 @Module
-@InstallIn(SingletonComponent::class) // Objek ini akan hidup selama aplikasi berjalan (Singleton)
+@InstallIn(SingletonComponent::class)
 object NetworkModule {
 
     @Provides
@@ -36,7 +36,7 @@ object NetworkModule {
     @Singleton
     fun provideApiService(okHttpClient: OkHttpClient): ApiService {
         return Retrofit.Builder()
-            .baseUrl("https://unicycle-portside-ungloved.ngrok-free.dev/api/")
+            .baseUrl("http://10.50.253.46:8000/api/")
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
