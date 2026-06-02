@@ -169,7 +169,8 @@ fun AppNavigation() {
                 currentRoute = currentRoute,
                 onNavigate = { navigateToTab(it) },
                 onWisataClick = { id -> navigateTo(DetailWisata(wisataId = id)) },
-                onSearchClick = { navigateTo(Explore) }
+                onSearchClick = { navigateTo(Explore) },
+                onNotifikasi = { navigateTo(Notifikasi) }
             )
         }
 
