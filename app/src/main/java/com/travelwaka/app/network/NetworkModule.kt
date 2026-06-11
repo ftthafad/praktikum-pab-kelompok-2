@@ -36,7 +36,7 @@ object NetworkModule {
     @Singleton
     fun provideApiService(okHttpClient: OkHttpClient): ApiService {
         return Retrofit.Builder()
-            .baseUrl("http://10.50.253.46:8000/api/")
+            .baseUrl("https://unicycle-portside-ungloved.ngrok-free.dev/api/")
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
