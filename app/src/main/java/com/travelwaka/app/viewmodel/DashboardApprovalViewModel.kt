@@ -2,7 +2,7 @@ package com.travelwaka.app.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.travelwaka.app.network.ApiService
+import com.travelwaka.app.data.repository.WisataRepository
 import com.travelwaka.app.network.model.Pengajuan
 import com.travelwaka.app.network.model.RejectRequest
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -14,7 +14,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class DashboardApprovalViewModel @Inject constructor(
-    private val apiService: ApiService
+    private val wisataRepository: WisataRepository
 ) : ViewModel() {
 
     private val _pengajuanList = MutableStateFlow<List<Pengajuan>>(emptyList())
@@ -34,11 +34,11 @@ class DashboardApprovalViewModel @Inject constructor(
     val successMessage: StateFlow<String?> = _successMessage.asStateFlow()
 
     // Ambil semua pengajuan pending
-    fun getPengajuanList(token: String) {
+    fun getPengajuanList() {
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                val response = apiService.getSemuaPengajuan("Bearer $token")
+                val response = wisataRepository.getSemuaPengajuan()
                 if (response.status) {
                     _pengajuanList.value = response.data ?: emptyList()
                 } else {
@@ -53,12 +53,12 @@ class DashboardApprovalViewModel @Inject constructor(
     }
 
     // Approve pengajuan
-    fun approvePengajuan(token: String, pengajuanId: Int) {
+    fun approvePengajuan(pengajuanId: Int) {
         viewModelScope.launch {
             _processingId.value = pengajuanId
             _errorMessage.value = null
             try {
-                val response = apiService.approvePengajuan("Bearer $token", pengajuanId)
+                val response = wisataRepository.approvePengajuan(pengajuanId)
                 if (response.status) {
                     // Hapus dari list setelah disetujui
                     _pengajuanList.value = _pengajuanList.value.filter { it.id != pengajuanId }
@@ -75,7 +75,7 @@ class DashboardApprovalViewModel @Inject constructor(
     }
 
     // Reject pengajuan dengan catatan
-    fun rejectPengajuan(token: String, pengajuanId: Int, catatan: String) {
+    fun rejectPengajuan(pengajuanId: Int, catatan: String) {
         if (catatan.isBlank()) {
             _errorMessage.value = "Catatan penolakan tidak boleh kosong"
             return
@@ -84,8 +84,7 @@ class DashboardApprovalViewModel @Inject constructor(
             _processingId.value = pengajuanId
             _errorMessage.value = null
             try {
-                val response = apiService.rejectPengajuan(
-                    token = "Bearer $token",
+                val response = wisataRepository.rejectPengajuan(
                     id = pengajuanId,
                     request = RejectRequest(catatanAdmin = catatan)
                 )

@@ -1,3 +1,10 @@
 <resources>
     <string name="app_name">TravelWaka</string>
+    <string name="welcome_message">Selamat Datang di TravelWaka</string>
+    <string name="login_title">Masuk ke Akun Anda</string>
+    <string name="login_btn">Masuk</string>
+    <string name="register_btn">Daftar</string>
+    <string name="email_label">Email</string>
+    <string name="password_label">Password</string>
+    <string name="skip_login">Lanjut sebagai Tamu</string>
 </resources>

@@ -31,6 +31,10 @@ fun BookmarkScreen(
     val isLoggedIn by viewModel.isLoggedIn.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
+    LaunchedEffect(Unit) {
+        viewModel.loadBookmarks()
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -83,6 +87,22 @@ fun BookmarkScreen(
                             style = MaterialTheme.typography.bodyMedium,
                             color = TextSecondary
                         )
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Button(
+                            onClick = { onNavigate(com.travelwaka.app.ui.navigation.Login) },
+                            modifier = Modifier
+                                .height(48.dp)
+                                .padding(horizontal = 32.dp),
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Primary)
+                        ) {
+                            Text(
+                                "Login Sekarang",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = White
+                            )
+                        }
                     }
                 }
 
@@ -106,6 +126,22 @@ fun BookmarkScreen(
                             style = MaterialTheme.typography.bodyMedium,
                             color = TextSecondary
                         )
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Button(
+                            onClick = { onNavigate(com.travelwaka.app.ui.navigation.Explore) },
+                            modifier = Modifier
+                                .height(48.dp)
+                                .padding(horizontal = 32.dp),
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Primary)
+                        ) {
+                            Text(
+                                "Mulai Cari Wisata",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = White
+                            )
+                        }
                     }
                 }
 
@@ -118,7 +154,9 @@ fun BookmarkScreen(
                         items(bookmarks) { bookmarkItem ->
                             WisataCard(
                                 wisata = bookmarkItem.wisata,
-                                onClick = { onWisataClick(bookmarkItem.wisata.id.toString()) }
+                                isBookmarked = true,
+                                onClick = { onWisataClick(bookmarkItem.wisata.id.toString()) },
+                                onBookmarkClick = { viewModel.toggleBookmark(bookmarkItem.wisata.id) }
                             )
                         }
                     }

@@ -29,10 +29,6 @@ fun ReviewScreen(
     onSubmit: () -> Unit,
     viewModel: ReviewViewModel = hiltViewModel()
 ) {
-    val context = LocalContext.current
-    val tokenDataStore = remember { TokenDataStore.getInstance(context) }
-    val token by tokenDataStore.token.collectAsState(initial = null)
-
     val myReview by viewModel.myReview.collectAsState()
     val isSubmitting by viewModel.isSubmitting.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
@@ -43,8 +39,8 @@ fun ReviewScreen(
     var reviewText by remember { mutableStateOf("") }
 
     // Cek review existing saat screen dibuka
-    LaunchedEffect(token) {
-        token?.let { viewModel.checkMyReview(it, wisataId.toInt()) }
+    LaunchedEffect(Unit) {
+        viewModel.checkMyReview(wisataId.toInt())
     }
 
     // Pre-fill form kalau sudah pernah review
@@ -191,15 +187,12 @@ fun ReviewScreen(
 
             Button(
                 onClick = {
-                    token?.let {
-                        viewModel.submitReview(
-                            token = it,
-                            wisataId = wisataId.toInt(),
-                            rating = rating,
-                            comment = reviewText.ifBlank { null },
-                            onSuccess = {} // navigasi di-handle via LaunchedEffect successMessage
-                        )
-                    }
+                    viewModel.submitReview(
+                        wisataId = wisataId.toInt(),
+                        rating = rating,
+                        comment = reviewText.ifBlank { null },
+                        onSuccess = {} // navigasi di-handle via LaunchedEffect successMessage
+                    )
                 },
                 modifier = Modifier
                     .fillMaxWidth()

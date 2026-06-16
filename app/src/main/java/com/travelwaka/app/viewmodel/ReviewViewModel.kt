@@ -2,7 +2,7 @@ package com.travelwaka.app.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.travelwaka.app.network.ApiService
+import com.travelwaka.app.data.repository.WisataRepository
 import com.travelwaka.app.network.model.Review
 import com.travelwaka.app.network.model.ReviewRequest
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -14,7 +14,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ReviewViewModel @Inject constructor(
-    private val apiService: ApiService
+    private val wisataRepository: WisataRepository
 ) : ViewModel() {
 
     // Daftar review publik untuk sebuah wisata
@@ -42,7 +42,7 @@ class ReviewViewModel @Inject constructor(
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                val response = apiService.getReviews(wisataId)
+                val response = wisataRepository.getReviews(wisataId)
                 if (response.status) {
                     _reviews.value = response.data ?: emptyList()
                 } else {
@@ -57,10 +57,10 @@ class ReviewViewModel @Inject constructor(
     }
 
     // Cek apakah user sudah review wisata ini
-    fun checkMyReview(token: String, wisataId: Int) {
+    fun checkMyReview(wisataId: Int) {
         viewModelScope.launch {
             try {
-                val response = apiService.checkReview("Bearer $token", wisataId)
+                val response = wisataRepository.checkReview(wisataId)
                 _myReview.value = response.data
             } catch (e: Exception) {
                 _myReview.value = null
@@ -69,7 +69,7 @@ class ReviewViewModel @Inject constructor(
     }
 
     // Submit review (tambah atau update)
-    fun submitReview(token: String, wisataId: Int, rating: Int, comment: String?, onSuccess: () -> Unit) {
+    fun submitReview(wisataId: Int, rating: Int, comment: String?, onSuccess: () -> Unit) {
         if (rating == 0) {
             _errorMessage.value = "Pilih rating terlebih dahulu"
             return
@@ -78,8 +78,7 @@ class ReviewViewModel @Inject constructor(
             _isSubmitting.value = true
             _errorMessage.value = null
             try {
-                val response = apiService.submitReview(
-                    token = "Bearer $token",
+                val response = wisataRepository.submitReview(
                     wisataId = wisataId,
                     request = ReviewRequest(rating = rating, comment = comment?.ifBlank { null })
                 )
@@ -99,11 +98,11 @@ class ReviewViewModel @Inject constructor(
     }
 
     // Hapus review
-    fun deleteReview(token: String, wisataId: Int, onSuccess: () -> Unit) {
+    fun deleteReview(wisataId: Int, onSuccess: () -> Unit) {
         viewModelScope.launch {
             _isSubmitting.value = true
             try {
-                val response = apiService.deleteReview("Bearer $token", wisataId)
+                val response = wisataRepository.deleteReview(wisataId)
                 if (response.status) {
                     _myReview.value = null
                     _successMessage.value = "Ulasan berhasil dihapus"

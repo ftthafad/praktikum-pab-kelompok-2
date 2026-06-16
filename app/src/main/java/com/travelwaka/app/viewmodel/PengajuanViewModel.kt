@@ -2,7 +2,7 @@ package com.travelwaka.app.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.travelwaka.app.network.ApiService
+import com.travelwaka.app.data.repository.WisataRepository
 import com.travelwaka.app.network.model.Pengajuan
 import com.travelwaka.app.network.model.PengajuanRequest
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -14,7 +14,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class PengajuanViewModel @Inject constructor(
-    private val apiService: ApiService
+    private val wisataRepository: WisataRepository
 ) : ViewModel() {
 
     // Status pengajuan user yang sedang login
@@ -34,11 +34,11 @@ class PengajuanViewModel @Inject constructor(
     val successMessage: StateFlow<String?> = _successMessage.asStateFlow()
 
     // Cek status pengajuan user
-    fun getPengajuanStatus(token: String) {
+    fun getPengajuanStatus() {
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                val response = apiService.getPengajuanStatus("Bearer $token")
+                val response = wisataRepository.getPengajuanStatus()
                 _pengajuanStatus.value = response.data
             } catch (e: Exception) {
                 _pengajuanStatus.value = null
@@ -50,7 +50,6 @@ class PengajuanViewModel @Inject constructor(
 
     // Kirim pengajuan jadi pengelola
     fun submitPengajuan(
-        token: String,
         namaUsaha: String,
         deskripsi: String,
         alasan: String,
@@ -73,8 +72,7 @@ class PengajuanViewModel @Inject constructor(
             _isSubmitting.value = true
             _errorMessage.value = null
             try {
-                val response = apiService.submitPengajuan(
-                    token = "Bearer $token",
+                val response = wisataRepository.submitPengajuan(
                     request = PengajuanRequest(
                         namaUsaha = namaUsaha,
                         deskripsi = deskripsi,

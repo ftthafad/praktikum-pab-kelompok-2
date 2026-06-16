@@ -29,10 +29,7 @@ fun DashboardApprovalScreen(
     onLogout: () -> Unit = {},
     viewModel: DashboardApprovalViewModel = hiltViewModel()
 ) {
-    val context = LocalContext.current
     val authViewModel: AuthViewModel = hiltViewModel()
-    val tokenDataStore = remember { TokenDataStore.getInstance(context) }
-    val token by tokenDataStore.token.collectAsState(initial = null)
 
     val pengajuanList by viewModel.pengajuanList.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
@@ -48,8 +45,8 @@ fun DashboardApprovalScreen(
 
     val snackbarHostState = remember { SnackbarHostState() }
 
-    LaunchedEffect(token) {
-        token?.let { viewModel.getPengajuanList(it) }
+    LaunchedEffect(Unit) {
+        viewModel.getPengajuanList()
     }
 
     // Dialog konfirmasi logout
@@ -179,9 +176,7 @@ fun DashboardApprovalScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        token?.let {
-                            viewModel.rejectPengajuan(it, targetId, catatanReject)
-                        }
+                        viewModel.rejectPengajuan(targetId, catatanReject)
                         rejectTargetId = null
                         catatanReject = ""
                     },
@@ -218,7 +213,7 @@ fun DashboardApprovalScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { token?.let { viewModel.getPengajuanList(it) } }) {
+                    IconButton(onClick = { viewModel.getPengajuanList() }) {
                         Icon(Icons.Filled.Refresh, contentDescription = "Refresh", tint = White)
                     }
                     IconButton(onClick = { showLogoutDialog = true }) {
@@ -292,7 +287,7 @@ fun DashboardApprovalScreen(
                                 item = item,
                                 isProcessing = processingId == item.id,
                                 onApprove = {
-                                    token?.let { viewModel.approvePengajuan(it, item.id) }
+                                    viewModel.approvePengajuan(item.id)
                                 },
                                 onReject = {
                                     rejectTargetId = item.id

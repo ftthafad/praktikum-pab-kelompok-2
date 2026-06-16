@@ -2,20 +2,39 @@ package com.travelwaka.app.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.travelwaka.app.network.ApiService
+import com.travelwaka.app.datastore.TokenDataStore
+import com.travelwaka.app.data.repository.WisataRepository
 import com.travelwaka.app.network.model.Category
 import com.travelwaka.app.network.model.Wisata
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val apiService: ApiService
+    private val tokenDataStore: TokenDataStore,
+    private val wisataRepository: WisataRepository
 ) : ViewModel() {
+
+    // --- State: daftar bookmark yang dimiliki user ---
+    private val _bookmarkedIds = MutableStateFlow<Set<Int>>(emptySet())
+    val bookmarkedIds: StateFlow<Set<Int>> = _bookmarkedIds.asStateFlow()
+
+    // --- State: apakah user sudah login ---
+    val isLoggedIn: StateFlow<Boolean> = tokenDataStore.token
+        .map { !it.isNullOrEmpty() }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = false
+        )
 
     // --- State: daftar wisata yang ditampilkan (bisa semua / by kategori) ---
     private val _wisataList = MutableStateFlow<List<Wisata>>(emptyList())
@@ -41,20 +60,61 @@ class HomeViewModel @Inject constructor(
         loadInitialData()
     }
 
+    fun loadBookmarks() {
+        viewModelScope.launch {
+            try {
+                val token = tokenDataStore.token.first()
+                if (!token.isNullOrEmpty()) {
+                    val response = wisataRepository.getBookmarks()
+                    if (response.status) {
+                        val ids = response.data.map { it.wisata.id }.toSet()
+                        _bookmarkedIds.value = ids
+                    }
+                } else {
+                    _bookmarkedIds.value = emptySet()
+                }
+            } catch (e: Exception) {
+                // ignore
+            }
+        }
+    }
+
+    fun toggleBookmark(wisataId: Int) {
+        viewModelScope.launch {
+            try {
+                val token = tokenDataStore.token.first()
+                if (token.isNullOrEmpty()) return@launch
+                val response = wisataRepository.toggleBookmark(wisataId)
+                if (response.status) {
+                    val currentIds = _bookmarkedIds.value.toMutableSet()
+                    if (response.isBookmarked) {
+                        currentIds.add(wisataId)
+                    } else {
+                        currentIds.remove(wisataId)
+                    }
+                    _bookmarkedIds.value = currentIds
+                }
+            } catch (e: Exception) {
+                _errorMessage.value = "Gagal mengubah bookmark"
+            }
+        }
+    }
+
     // Load wisata & kategori sekaligus saat pertama kali
     private fun loadInitialData() {
+        loadBookmarks()
         viewModelScope.launch {
             _isLoading.value = true
             try {
                 // Jalankan keduanya, kategori tidak perlu tampilkan loading terpisah
-                val wisataResponse = apiService.getWisata()
+                val wisataResponse = wisataRepository.getWisata()
                 if (wisataResponse.status) {
                     _wisataList.value = wisataResponse.data ?: emptyList()
                 } else {
                     _errorMessage.value = wisataResponse.message
                 }
 
-                val categoryResponse = apiService.getCategories()
+                val categoryResponse = wisataRepository.getCategories()
                 if (categoryResponse.status) {
                     _categories.value = categoryResponse.data ?: emptyList()
                 }
@@ -80,7 +140,7 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                val response = apiService.getWisata()
+                val response = wisataRepository.getWisata()
                 if (response.status) {
                     _wisataList.value = response.data ?: emptyList()
                 } else {
@@ -98,7 +158,7 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                val response = apiService.getWisataByCategory(categoryId)
+                val response = wisataRepository.getWisataByCategory(categoryId)
                 if (response.status) {
                     _wisataList.value = response.data ?: emptyList()
                 } else {

@@ -20,6 +20,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.travelwaka.app.ui.components.*
 import com.travelwaka.app.ui.theme.*
 import com.travelwaka.app.viewmodel.ExploreViewModel
+import androidx.compose.ui.platform.LocalContext
+import android.widget.Toast
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,17 +31,21 @@ fun ExploreScreen(
     onWisataClick: (String) -> Unit,
     onBack: () -> Unit
 ) {
-    // ✏️ DIUBAH: pakai Hilt DI
     val viewModel: ExploreViewModel = hiltViewModel()
+    val context = LocalContext.current
 
-    // ✏️ DIUBAH: semua state dari VM, tidak ada remember lokal
     val filteredList by viewModel.filteredList.collectAsState()
     val categories by viewModel.categories.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val selectedCategoryId by viewModel.selectedCategoryId.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    val errorMessage by viewModel.errorMessage.collectAsState()
+    val bookmarkedIds by viewModel.bookmarkedIds.collectAsState()
+    val isLoggedIn by viewModel.isLoggedIn.collectAsState()
 
-    // ✅ DIHAPUS: dua LaunchedEffect & var searchQuery, selectedCategory, selectedCategoryName
+    LaunchedEffect(Unit) {
+        viewModel.loadBookmarks()
+    }
 
     Scaffold(
         bottomBar = { BottomNavBar(currentRoute, onNavigate) },
@@ -71,7 +77,6 @@ fun ExploreScreen(
                         )
                     }
                     OutlinedTextField(
-                        // ✏️ DIUBAH: value & onValueChange dari VM
                         value = searchQuery,
                         onValueChange = { viewModel.onSearchQueryChange(it) },
                         placeholder = { Text("Cari destinasi wisata...", color = White.copy(alpha = 0.7f)) },
@@ -97,7 +102,6 @@ fun ExploreScreen(
             ) {
                 item {
                     FilterChip(
-                        // ✏️ DIUBAH: cek dari selectedCategoryId VM
                         selected = selectedCategoryId == null,
                         onClick = { viewModel.selectCategory(null) },
                         label = {
@@ -121,7 +125,6 @@ fun ExploreScreen(
                 }
                 items(categories) { category ->
                     FilterChip(
-                        // ✏️ DIUBAH: selectedCategoryName sudah tidak perlu
                         selected = selectedCategoryId == category.id,
                         onClick = { viewModel.selectCategory(category.id) },
                         label = {
@@ -147,11 +150,39 @@ fun ExploreScreen(
 
             // Loading state
             if (isLoading) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
+                LazyColumn(
+                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    CircularProgressIndicator(color = Primary)
+                    items(5) {
+                        ShimmerWisataListCard()
+                    }
+                }
+            } else if (errorMessage != null) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(24.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = errorMessage ?: "Gagal memuat data wisata",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = TextSecondary,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = {
+                            viewModel.clearError()
+                            viewModel.selectCategory(selectedCategoryId)
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Primary),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("Coba Lagi", color = White)
+                    }
                 }
             } else {
                 // Result count
@@ -170,7 +201,15 @@ fun ExploreScreen(
                     items(filteredList) { wisata ->
                         WisataListCard(
                             wisata = wisata,
-                            onClick = { onWisataClick(wisata.id.toString()) }
+                            isBookmarked = bookmarkedIds.contains(wisata.id),
+                            onClick = { onWisataClick(wisata.id.toString()) },
+                            onBookmarkClick = {
+                                if (isLoggedIn) {
+                                    viewModel.toggleBookmark(wisata.id)
+                                } else {
+                                    Toast.makeText(context, "Login terlebih dahulu untuk menyimpan bookmark", Toast.LENGTH_SHORT).show()
+                                }
+                            }
                         )
                     }
                     if (filteredList.isEmpty()) {

@@ -39,6 +39,7 @@ fun WisataCard(
     wisata: Wisata,
     onClick: () -> Unit,
     onBookmarkClick: () -> Unit = {},
+    isBookmarked: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val imageUrl = wisata.cover_photo?.photo_url
@@ -48,7 +49,7 @@ fun WisataCard(
     Card(
         modifier = modifier
             .width(200.dp)
-            .clickable { onClick() },
+            .pressClickEffect { onClick() },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = CardBackground),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
@@ -69,9 +70,9 @@ fun WisataCard(
                     modifier = Modifier.align(Alignment.TopEnd)
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.BookmarkBorder,
+                        imageVector = if (isBookmarked) Icons.Filled.Bookmark else Icons.Filled.BookmarkBorder,
                         contentDescription = "Bookmark",
-                        tint = White
+                        tint = if (isBookmarked) Primary else White
                     )
                 }
                 Surface(
@@ -154,6 +155,7 @@ fun WisataListCard(
     wisata: Wisata,
     onClick: () -> Unit,
     onBookmarkClick: () -> Unit = {},
+    isBookmarked: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val imageUrl = wisata.cover_photo?.photo_url
@@ -163,7 +165,7 @@ fun WisataListCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .clickable { onClick() },
+            .pressClickEffect { onClick() },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = CardBackground),
         elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
@@ -234,10 +236,127 @@ fun WisataListCard(
             }
             IconButton(onClick = onBookmarkClick) {
                 Icon(
-                    imageVector = Icons.Filled.BookmarkBorder,
+                    imageVector = if (isBookmarked) Icons.Filled.Bookmark else Icons.Filled.BookmarkBorder,
                     contentDescription = "Bookmark",
-                    tint = TextSecondary
+                    tint = if (isBookmarked) Primary else TextSecondary
                 )
+            }
+        }
+    }
+}
+
+@Composable
+fun ShimmerWisataCard(modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier.width(200.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = CardBackground),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(130.dp)
+                    .shimmer()
+            )
+            Column(modifier = Modifier.padding(12.dp)) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.8f)
+                        .height(16.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .shimmer()
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.5f)
+                        .height(12.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .shimmer()
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(50.dp)
+                            .height(12.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .shimmer()
+                    )
+                    Box(
+                        modifier = Modifier
+                            .width(60.dp)
+                            .height(12.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .shimmer()
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ShimmerWisataListCard(modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(100.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = CardBackground),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row {
+            Box(
+                modifier = Modifier
+                    .width(110.dp)
+                    .fillMaxHeight()
+                    .shimmer()
+            )
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(12.dp),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.7f)
+                        .height(16.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .shimmer()
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.4f)
+                        .height(12.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .shimmer()
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(40.dp)
+                            .height(12.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .shimmer()
+                    )
+                    Box(
+                        modifier = Modifier
+                            .width(50.dp)
+                            .height(12.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .shimmer()
+                    )
+                }
             }
         }
     }

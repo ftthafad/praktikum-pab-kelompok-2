@@ -4,9 +4,12 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.travelwaka.app.datastore.TokenDataStore
-import com.travelwaka.app.network.ApiService
+import com.travelwaka.app.data.repository.AuthRepository
 import com.travelwaka.app.network.model.LoginRequest
 import com.travelwaka.app.network.model.RegisterRequest
+import com.travelwaka.app.network.model.GoogleLoginRequest
+import androidx.credentials.ClearCredentialStateRequest
+import androidx.credentials.CredentialManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,9 +21,9 @@ import javax.inject.Inject
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val apiService: ApiService
+    private val tokenDataStore: TokenDataStore,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
-    private val tokenDataStore = TokenDataStore.getInstance(context)
 
     // State untuk loading
     private val _isLoading = MutableStateFlow(false)
@@ -35,9 +38,38 @@ class AuthViewModel @Inject constructor(
     val isSuccess: StateFlow<Boolean> = _isSuccess
 
     // Data user
+    val token = tokenDataStore.token
     val userName = tokenDataStore.userName
     val userEmail = tokenDataStore.userEmail
     val userRole = tokenDataStore.userRole
+
+    private val _currentUser = MutableStateFlow<com.travelwaka.app.network.model.User?>(null)
+    val currentUser: StateFlow<com.travelwaka.app.network.model.User?> = _currentUser
+
+    fun loadUserProfile() {
+        viewModelScope.launch {
+            try {
+                val tokenVal = tokenDataStore.token.first()
+                if (!tokenVal.isNullOrEmpty()) {
+                    val response = authRepository.me()
+                    if (response.status) {
+                        _currentUser.value = response.data
+                        // Auto-sync user details if changed in DB
+                        response.data?.let { user ->
+                            tokenDataStore.saveAuth(
+                                token = tokenVal,
+                                role = user.role,
+                                name = user.name,
+                                email = user.email
+                            )
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                // ignore
+            }
+        }
+    }
 
     // Login
     fun login(email: String, password: String) {
@@ -63,7 +95,7 @@ class AuthViewModel @Inject constructor(
             _isLoading.value = true
             _errorMessage.value = null
             try {
-                val response = apiService.login(LoginRequest(email, password))
+                val response = authRepository.login(LoginRequest(email, password))
                 if (response.status) {
                     response.data?.let { data ->
                         tokenDataStore.saveAuth(
@@ -85,6 +117,7 @@ class AuthViewModel @Inject constructor(
             }
         }
     }
+
     // Register
     fun register(name: String, email: String, password: String, passwordConfirmation: String) {
         if (name.isBlank()) {
@@ -107,7 +140,7 @@ class AuthViewModel @Inject constructor(
             _isLoading.value = true
             _errorMessage.value = null
             try {
-                val response = apiService.register(
+                val response = authRepository.register(
                     RegisterRequest(name, email, password, passwordConfirmation)
                 )
                 if (response.status) {
@@ -131,14 +164,50 @@ class AuthViewModel @Inject constructor(
         }
     }
 
+    // Google Sign-In
+    fun loginWithGoogle(idToken: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _errorMessage.value = null
+            try {
+                val response = authRepository.loginWithGoogle(GoogleLoginRequest(idToken))
+                if (response.status) {
+                    response.data?.let { data ->
+                        tokenDataStore.saveAuth(
+                            token = data.token,
+                            role = data.user.role,
+                            name = data.user.name,
+                            email = data.user.email
+                        )
+                    }
+                    _isSuccess.value = true
+                } else {
+                    _errorMessage.value = response.message
+                }
+            } catch (e: Exception) {
+                _errorMessage.value = "Gagal masuk dengan Google"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
     // Logout
     fun logout(onSuccess: () -> Unit) {
         viewModelScope.launch {
             _isLoading.value = true
             try {
+                // Hapus state kredensial Google Sign-In
+                val credentialManager = CredentialManager.create(context)
+                try {
+                    credentialManager.clearCredentialState(ClearCredentialStateRequest())
+                } catch (e: Exception) {
+                    // abaikan jika gagal
+                }
+
                 val token = tokenDataStore.token.first()
                 if (!token.isNullOrEmpty()) {
-                    apiService.logout("Bearer $token")
+                    authRepository.logout()
                 }
             } catch (e: Exception) {
                 // ignore error logout dari server

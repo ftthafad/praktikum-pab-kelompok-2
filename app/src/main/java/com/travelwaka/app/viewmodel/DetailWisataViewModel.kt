@@ -1,13 +1,11 @@
 package com.travelwaka.app.viewmodel
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.travelwaka.app.datastore.TokenDataStore
-import com.travelwaka.app.network.ApiService
+import com.travelwaka.app.data.repository.WisataRepository
 import com.travelwaka.app.network.model.Wisata
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,10 +15,9 @@ import javax.inject.Inject
 
 @HiltViewModel
 class DetailWisataViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
-    private val apiService: ApiService
+    private val tokenDataStore: TokenDataStore,
+    private val wisataRepository: WisataRepository
 ) : ViewModel() {
-    private val tokenDataStore = TokenDataStore.getInstance(context)
 
     // --- State: data detail wisata ---
     private val _wisata = MutableStateFlow<Wisata?>(null)
@@ -51,7 +48,7 @@ class DetailWisataViewModel @Inject constructor(
             _isLoading.value = true
             try {
                 // Ambil detail wisata
-                val response = apiService.getWisataDetail(wisataId)
+                val response = wisataRepository.getWisataDetail(wisataId)
                 if (response.status) {
                     _wisata.value = response.data
                 } else {
@@ -62,7 +59,7 @@ class DetailWisataViewModel @Inject constructor(
                 val token = tokenDataStore.token.first()
                 if (!token.isNullOrEmpty()) {
                     _isLoggedIn.value = true
-                    val bookmarkResponse = apiService.checkBookmark("Bearer $token", wisataId)
+                    val bookmarkResponse = wisataRepository.checkBookmark(wisataId)
                     _isBookmarked.value = bookmarkResponse.isBookmarked
                 } else {
                     _isLoggedIn.value = false
@@ -81,7 +78,7 @@ class DetailWisataViewModel @Inject constructor(
             try {
                 val token = tokenDataStore.token.first()
                 if (token.isNullOrEmpty()) return@launch
-                val response = apiService.toggleBookmark("Bearer $token", wisataId)
+                val response = wisataRepository.toggleBookmark(wisataId)
                 if (response.status) {
                     _isBookmarked.value = response.isBookmarked
                     _bookmarkMessage.value = response.message

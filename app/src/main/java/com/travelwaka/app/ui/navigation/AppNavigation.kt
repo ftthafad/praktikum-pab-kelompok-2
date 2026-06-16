@@ -71,7 +71,7 @@ data object DashboardApproval : NavKey
 @Composable
 fun AppNavigation() {
     val context = LocalContext.current
-    val tokenDataStore = remember { TokenDataStore.getInstance(context) }
+    val tokenDataStore = remember { TokenDataStore(context) }
 
     val hasSeenOnboarding by tokenDataStore.hasSeenOnboarding.collectAsState(initial = false)
     val token by tokenDataStore.token.collectAsState(initial = null)
@@ -188,8 +188,7 @@ fun AppNavigation() {
                 wisataId = key.wisataId,
                 onBack = { goBack() },
                 onWriteReview = { navigateTo(Review(wisataId = key.wisataId)) },
-                onNavigateToLogin = { navigateAndClearTo(Login) },
-                token = token?.ifEmpty { null }
+                onNavigateToLogin = { navigateAndClearTo(Login) }
             )
         }
 
@@ -231,7 +230,8 @@ fun AppNavigation() {
 
         entry<Notifikasi> {
             NotifikasiScreen(
-                onBack = { goBack() }
+                onBack = { goBack() },
+                onAjukanPengelola = { navigateTo(FormPengajuan) }
             )
         }
 

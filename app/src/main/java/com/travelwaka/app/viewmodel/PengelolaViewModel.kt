@@ -4,7 +4,7 @@ import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.travelwaka.app.network.ApiService
+import com.travelwaka.app.data.repository.WisataRepository
 import com.travelwaka.app.network.model.Wisata
 import com.travelwaka.app.network.model.WisataRequest
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,7 +19,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class PengelolaWisataViewModel @Inject constructor(
-    private val apiService: ApiService
+    private val wisataRepository: WisataRepository
 ) : ViewModel() {
 
     private val _wisataList = MutableStateFlow<List<Wisata>>(emptyList())
@@ -45,11 +45,11 @@ class PengelolaWisataViewModel @Inject constructor(
     val successMessage: StateFlow<String?> = _successMessage.asStateFlow()
 
     // Ambil semua wisata milik pengelola
-    fun getWisataSaya(token: String) {
+    fun getWisataSaya() {
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                val response = apiService.getWisataSaya("Bearer $token")
+                val response = wisataRepository.getWisataSaya()
                 if (response.status) {
                     _wisataList.value = response.data ?: emptyList()
                 } else {
@@ -75,7 +75,6 @@ class PengelolaWisataViewModel @Inject constructor(
 
     // Tambah wisata baru
     fun tambahWisata(
-        token: String,
         name: String,
         description: String,
         location: String,
@@ -92,8 +91,7 @@ class PengelolaWisataViewModel @Inject constructor(
             _isSaving.value = true
             _errorMessage.value = null
             try {
-                val response = apiService.tambahWisata(
-                    token = "Bearer $token",
+                val response = wisataRepository.tambahWisata(
                     request = WisataRequest(
                         name = name,
                         description = description,
@@ -121,7 +119,6 @@ class PengelolaWisataViewModel @Inject constructor(
 
     // Update wisata
     fun updateWisata(
-        token: String,
         wisataId: Int,
         name: String,
         description: String,
@@ -139,8 +136,7 @@ class PengelolaWisataViewModel @Inject constructor(
             _isSaving.value = true
             _errorMessage.value = null
             try {
-                val response = apiService.updateWisata(
-                    token = "Bearer $token",
+                val response = wisataRepository.updateWisata(
                     id = wisataId,
                     request = WisataRequest(
                         name = name,
@@ -168,11 +164,11 @@ class PengelolaWisataViewModel @Inject constructor(
     }
 
     // Hapus wisata
-    fun deleteWisata(token: String, wisataId: Int, onSuccess: () -> Unit) {
+    fun deleteWisata(wisataId: Int, onSuccess: () -> Unit) {
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                val response = apiService.deleteWisata("Bearer $token", wisataId)
+                val response = wisataRepository.deleteWisata(wisataId)
                 if (response.status) {
                     _wisataList.value = _wisataList.value.filter { it.id != wisataId }
                     _successMessage.value = "Wisata berhasil dihapus"
@@ -189,22 +185,25 @@ class PengelolaWisataViewModel @Inject constructor(
     }
 
     // Upload foto wisata
-    fun uploadFoto(context: Context, token: String, wisataId: Int, uri: Uri, onSuccess: () -> Unit) {
+    fun uploadFoto(context: Context, wisataId: Int, uri: Uri, onSuccess: () -> Unit) {
         viewModelScope.launch {
             _isUploading.value = true
             _errorMessage.value = null
             try {
-                val inputStream = context.contentResolver.openInputStream(uri)
-                    ?: throw Exception("Tidak bisa membaca file")
-                val bytes = inputStream.readBytes()
-                inputStream.close()
+                val bytes = com.travelwaka.app.utils.ImageCompressor.compressImage(context, uri)
+                    ?: run {
+                        val inputStream = context.contentResolver.openInputStream(uri)
+                            ?: throw Exception("Tidak bisa membaca file")
+                        val readBytes = inputStream.readBytes()
+                        inputStream.close()
+                        readBytes
+                    }
 
                 val mimeType = context.contentResolver.getType(uri) ?: "image/jpeg"
                 val requestBody = bytes.toRequestBody(mimeType.toMediaTypeOrNull())
                 val part = MultipartBody.Part.createFormData("photo", "photo.jpg", requestBody)
 
-                val response = apiService.uploadFotoWisata(
-                    token = "Bearer $token",
+                val response = wisataRepository.uploadFotoWisata(
                     wisataId = wisataId,
                     photo = part
                 )
@@ -223,10 +222,10 @@ class PengelolaWisataViewModel @Inject constructor(
     }
 
     // Hapus foto
-    fun deleteFoto(token: String, wisataId: Int, photoId: Int, onSuccess: () -> Unit) {
+    fun deleteFoto(wisataId: Int, photoId: Int, onSuccess: () -> Unit) {
         viewModelScope.launch {
             try {
-                val response = apiService.deleteFotoWisata("Bearer $token", wisataId, photoId)
+                val response = wisataRepository.deleteFotoWisata(wisataId, photoId)
                 if (response.status) {
                     _successMessage.value = "Foto berhasil dihapus"
                     onSuccess()

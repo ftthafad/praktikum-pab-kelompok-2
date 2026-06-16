@@ -2,7 +2,7 @@ package com.travelwaka.app.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.travelwaka.app.network.ApiService
+import com.travelwaka.app.data.repository.WisataRepository
 import com.travelwaka.app.network.model.Category
 import com.travelwaka.app.network.model.Wisata
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -10,14 +10,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import com.travelwaka.app.network.model.BookmarkItem
-import com.travelwaka.app.network.model.BookmarkStatusResponse
-import com.travelwaka.app.network.model.BookmarkListResponse
 import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 
 @HiltViewModel
 class WisataViewModel @Inject constructor(
-    private val apiService: ApiService
+    private val wisataRepository: WisataRepository
 ) : ViewModel() {
 
     // State wisata list
@@ -53,7 +51,7 @@ class WisataViewModel @Inject constructor(
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                val response = apiService.getWisata()
+                val response = wisataRepository.getWisata()
                 if (response.status) {
                     _wisataList.value = response.data ?: emptyList()
                 } else {
@@ -73,7 +71,7 @@ class WisataViewModel @Inject constructor(
             _isLoading.value = true
             _wisataDetail.value = null
             try {
-                val response = apiService.getWisataDetail(id)
+                val response = wisataRepository.getWisataDetail(id)
                 if (response.status) {
                     _wisataDetail.value = response.data
                 } else {
@@ -92,7 +90,7 @@ class WisataViewModel @Inject constructor(
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                val response = apiService.getWisataByCategory(categoryId)
+                val response = wisataRepository.getWisataByCategory(categoryId)
                 if (response.status) {
                     _wisataList.value = response.data ?: emptyList()
                 } else {
@@ -110,7 +108,7 @@ class WisataViewModel @Inject constructor(
     fun getCategories() {
         viewModelScope.launch {
             try {
-                val response = apiService.getCategories()
+                val response = wisataRepository.getCategories()
                 if (response.status) {
                     _categories.value = response.data ?: emptyList()
                 }

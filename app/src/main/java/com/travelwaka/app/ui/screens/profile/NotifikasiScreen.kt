@@ -25,18 +25,15 @@ import androidx.hilt.navigation.compose.hiltViewModel
 @Composable
 fun NotifikasiScreen(
     onBack: () -> Unit,
+    onAjukanPengelola: () -> Unit,
     viewModel: PengajuanViewModel = hiltViewModel()
 ) {
-    val context = LocalContext.current
-    val tokenDataStore = remember { TokenDataStore.getInstance(context) }
-    val token by tokenDataStore.token.collectAsState(initial = null)
-
     val pengajuanStatus by viewModel.pengajuanStatus.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
     // Load status pengajuan saat screen dibuka
-    LaunchedEffect(token) {
-        token?.let { viewModel.getPengajuanStatus(it) }
+    LaunchedEffect(Unit) {
+        viewModel.getPengajuanStatus()
     }
 
     Scaffold(
@@ -92,10 +89,19 @@ fun NotifikasiScreen(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            "Kamu belum pernah mengajukan\npendaftaran pengelola",
+                            text = "Kamu belum pernah mengajukan\npendaftaran pengelola",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = TextSecondary
+                            color = TextSecondary,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
                         )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(
+                            onClick = onAjukanPengelola,
+                            colors = ButtonDefaults.buttonColors(containerColor = Primary),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Ajukan Sekarang", color = White)
+                        }
                     }
                 }
 

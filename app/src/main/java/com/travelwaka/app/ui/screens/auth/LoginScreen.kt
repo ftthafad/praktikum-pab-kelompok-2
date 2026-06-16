@@ -27,6 +27,15 @@ import androidx.compose.ui.unit.dp
 import com.travelwaka.app.ui.theme.*
 import com.travelwaka.app.viewmodel.AuthViewModel
 import androidx.hilt.navigation.compose.hiltViewModel
+import android.widget.Toast
+import androidx.credentials.CredentialManager
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.CustomCredential
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import com.travelwaka.app.R
 
 @Composable
 fun LoginScreen(
@@ -35,6 +44,9 @@ fun LoginScreen(
     onSkip: () -> Unit
 ) {
     val viewModel: AuthViewModel = hiltViewModel()
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val credentialManager = remember { CredentialManager.create(context) }
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -70,7 +82,7 @@ fun LoginScreen(
         ) {
             Spacer(modifier = Modifier.height(64.dp))
             Text(
-                text = "Travel Waka",
+                text = stringResource(id = R.string.app_name),
                 style = MaterialTheme.typography.displayMedium,
                 color = White,
                 fontWeight = FontWeight.Bold
@@ -95,7 +107,7 @@ fun LoginScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "Masuk",
+                        text = stringResource(id = R.string.login_btn),
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color = Primary
@@ -195,6 +207,89 @@ fun LoginScreen(
                     }
                     Spacer(modifier = Modifier.height(16.dp))
 
+                    // Pembatas
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                    ) {
+                        Box(modifier = Modifier.weight(1f).height(1.dp).background(DividerColor))
+                        Text(
+                            text = "atau",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = TextSecondary,
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+                        Box(modifier = Modifier.weight(1f).height(1.dp).background(DividerColor))
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Tombol Google Sign-In
+                    OutlinedButton(
+                        onClick = {
+                            scope.launch {
+                                try {
+                                    val googleIdOption = GetGoogleIdOption.Builder()
+                                        .setFilterByAuthorizedAccounts(false)
+                                        .setServerClientId("1005594778345-eu52f1263rk8kpt0g85jkbk8bl4g6sc3.apps.googleusercontent.com")
+                                        .build()
+
+                                    val request = GetCredentialRequest.Builder()
+                                        .addCredentialOption(googleIdOption)
+                                        .build()
+
+                                    val result = credentialManager.getCredential(
+                                        request = request,
+                                        context = context
+                                    )
+
+                                    val credential = result.credential
+                                    if (credential is CustomCredential && 
+                                        credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
+                                        val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
+                                        val idToken = googleIdTokenCredential.idToken
+                                        viewModel.loginWithGoogle(idToken)
+                                    } else {
+                                        Toast.makeText(context, "Kredensial tidak dikenali", Toast.LENGTH_SHORT).show()
+                                    }
+                                } catch (e: androidx.credentials.exceptions.GetCredentialException) {
+                                    // Tampilkan error detail yang sesungguhnya agar mudah didebug
+                                    Toast.makeText(context, "Google Error: ${e.message}", Toast.LENGTH_LONG).show()
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, "Error: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = TextPrimary),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, DividerColor),
+                        enabled = !isLoading
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = "G",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Black,
+                                color = Primary,
+                                modifier = Modifier.padding(end = 12.dp)
+                            )
+                            Text(
+                                "Masuk dengan Google",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = TextPrimary
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
                     OutlinedButton(
                         onClick = onSkip,
                         modifier = Modifier
@@ -205,7 +300,7 @@ fun LoginScreen(
                         border = androidx.compose.foundation.BorderStroke(1.5.dp, Primary)
                     ) {
                         Text(
-                            "Lanjut sebagai Tamu",
+                            text = stringResource(id = R.string.skip_login),
                             style = MaterialTheme.typography.titleMedium
                         )
                     }
@@ -218,7 +313,7 @@ fun LoginScreen(
                             color = TextSecondary
                         )
                         Text(
-                            "Daftar",
+                            text = stringResource(id = R.string.register_btn),
                             style = MaterialTheme.typography.bodyMedium,
                             color = Primary,
                             fontWeight = FontWeight.Bold,

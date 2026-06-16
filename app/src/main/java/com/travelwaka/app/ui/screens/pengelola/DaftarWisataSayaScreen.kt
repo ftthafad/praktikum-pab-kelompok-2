@@ -31,10 +31,6 @@ fun DaftarWisataSayaScreen(
     onEditWisata: (String) -> Unit,
     viewModel: PengelolaWisataViewModel = hiltViewModel()
 ) {
-    val context = LocalContext.current
-    val tokenDataStore = remember { TokenDataStore.getInstance(context) }
-    val token by tokenDataStore.token.collectAsState(initial = null)
-
     val wisataList by viewModel.wisataList.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
@@ -44,8 +40,8 @@ fun DaftarWisataSayaScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     // Load data saat screen dibuka
-    LaunchedEffect(token) {
-        token?.let { viewModel.getWisataSaya(it) }
+    LaunchedEffect(Unit) {
+        viewModel.getWisataSaya()
     }
 
     // Tampilkan pesan error/sukses
@@ -91,9 +87,7 @@ fun DaftarWisataSayaScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        token?.let {
-                            viewModel.deleteWisata(it, wisataId) {}
-                        }
+                        viewModel.deleteWisata(wisataId) {}
                         showDeleteDialog = null
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = ErrorColor)

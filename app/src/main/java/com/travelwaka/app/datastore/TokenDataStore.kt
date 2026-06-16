@@ -15,16 +15,6 @@ val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "au
 class TokenDataStore(private val context: Context) {
 
     companion object {
-        @Volatile
-        private var INSTANCE: TokenDataStore? = null
-
-        fun getInstance(context: Context): TokenDataStore {
-            return INSTANCE ?: synchronized(this) {
-                INSTANCE ?: TokenDataStore(context.applicationContext).also {
-                    INSTANCE = it
-                }
-            }
-        }
         val ONBOARDING_KEY = booleanPreferencesKey("has_seen_onboarding")
         val TOKEN_KEY = stringPreferencesKey("auth_token")
         val USER_ROLE_KEY = stringPreferencesKey("user_role")

@@ -29,6 +29,8 @@ import com.travelwaka.app.ui.components.*
 import com.travelwaka.app.ui.theme.*
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.travelwaka.app.viewmodel.HomeViewModel
+import androidx.compose.ui.platform.LocalContext
+import android.widget.Toast
 
 val bannerImages = listOf(
     "https://images.unsplash.com/photo-1596402184320-417e7178b2cd?w=800",
@@ -46,13 +48,20 @@ fun HomeScreen(
     onNotifikasi: () -> Unit
 ) {
     val viewModel: HomeViewModel = hiltViewModel()
+    val context = LocalContext.current
     val wisataList by viewModel.wisataList.collectAsState()
     val categories by viewModel.categories.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    val bookmarkedIds by viewModel.bookmarkedIds.collectAsState()
+    val isLoggedIn by viewModel.isLoggedIn.collectAsState()
 
     val selectedCategoryId by viewModel.selectedCategoryId.collectAsState()
 
     val pagerState = rememberPagerState(pageCount = { bannerImages.size })
+
+    LaunchedEffect(Unit) {
+        viewModel.loadBookmarks()
+    }
 
 
 
@@ -180,14 +189,14 @@ fun HomeScreen(
                         item {
                             CategoryChip(
                                 label = "Semua",
-                                isSelected = selectedCategoryId == null,  // ✏️ fix di sini
+                                isSelected = selectedCategoryId == null,
                                 onClick = { viewModel.selectCategory(null) }
                             )
                         }
                         items(categories) { category ->
                             CategoryChip(
                                 label = category.name,
-                                isSelected = selectedCategoryId == category.id,  // ✏️ fix di sini
+                                isSelected = selectedCategoryId == category.id,
                                 onClick = { viewModel.selectCategory(category.id) }
                             )
                         }
@@ -220,14 +229,20 @@ fun HomeScreen(
             // Loading state
             if (isLoading) {
                 item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(32.dp),
-                        contentAlignment = Alignment.Center
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 20.dp),
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
-                        CircularProgressIndicator(color = Primary)
+                        items(5) {
+                            ShimmerWisataCard()
+                        }
                     }
+                }
+                item {
+                    Spacer(modifier = Modifier.height(24.dp))
+                }
+                items(5) {
+                    ShimmerWisataListCard(modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp))
                 }
             } else {
                 item {
@@ -238,7 +253,15 @@ fun HomeScreen(
                         items(wisataList.take(5)) { wisata ->
                             WisataCard(
                                 wisata = wisata,
-                                onClick = { onWisataClick(wisata.id.toString()) }
+                                isBookmarked = bookmarkedIds.contains(wisata.id),
+                                onClick = { onWisataClick(wisata.id.toString()) },
+                                onBookmarkClick = {
+                                    if (isLoggedIn) {
+                                        viewModel.toggleBookmark(wisata.id)
+                                    } else {
+                                        Toast.makeText(context, "Login terlebih dahulu untuk menyimpan bookmark", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
                             )
                         }
                     }
@@ -260,7 +283,15 @@ fun HomeScreen(
                 items(wisataList) { wisata ->
                     WisataListCard(
                         wisata = wisata,
+                        isBookmarked = bookmarkedIds.contains(wisata.id),
                         onClick = { onWisataClick(wisata.id.toString()) },
+                        onBookmarkClick = {
+                            if (isLoggedIn) {
+                                viewModel.toggleBookmark(wisata.id)
+                            } else {
+                                Toast.makeText(context, "Login terlebih dahulu untuk menyimpan bookmark", Toast.LENGTH_SHORT).show()
+                            }
+                        },
                         modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp)
                     )
                 }

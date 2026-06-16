@@ -1,34 +1,39 @@
 package com.travelwaka.app.viewmodel
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.travelwaka.app.datastore.TokenDataStore
-import com.travelwaka.app.network.ApiService
+import com.travelwaka.app.data.repository.WisataRepository
 import com.travelwaka.app.network.model.BookmarkItem
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class BookmarkViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
-    private val apiService: ApiService
+    private val tokenDataStore: TokenDataStore,
+    private val wisataRepository: WisataRepository
 ) : ViewModel() {
-    private val tokenDataStore = TokenDataStore.getInstance(context)
 
     // --- State: daftar bookmark yang dimiliki user ---
     private val _bookmarks = MutableStateFlow<List<BookmarkItem>>(emptyList())
     val bookmarks: StateFlow<List<BookmarkItem>> = _bookmarks.asStateFlow()
 
-    // --- State: apakah user sudah login (token tersedia) ---
-    private val _isLoggedIn = MutableStateFlow(false)
-    val isLoggedIn: StateFlow<Boolean> = _isLoggedIn.asStateFlow()
+    // --- State: apakah user sudah login ---
+    val isLoggedIn: StateFlow<Boolean> = tokenDataStore.token
+        .map { !it.isNullOrEmpty() }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = false
+        )
 
     // --- State: loading & error ---
     private val _isLoading = MutableStateFlow(false)
@@ -37,33 +42,59 @@ class BookmarkViewModel @Inject constructor(
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
-    // Inisialisasi: cek token lalu load bookmark jika sudah login
+    // Inisialisasi: cek token secara reaktif lalu load bookmark jika sudah login
     init {
-        loadBookmarks()
+        viewModelScope.launch {
+            tokenDataStore.token.collect { token ->
+                if (!token.isNullOrEmpty()) {
+                    fetchBookmarks()
+                } else {
+                    _bookmarks.value = emptyList()
+                }
+            }
+        }
     }
 
-    fun loadBookmarks() {
+    private fun fetchBookmarks() {
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                val token = tokenDataStore.token.first()
-                if (token.isNullOrEmpty()) {
-                    // Belum login, tampilkan state kosong
-                    _isLoggedIn.value = false
-                    _bookmarks.value = emptyList()
+                val response = wisataRepository.getBookmarks()
+                if (response.status) {
+                    _bookmarks.value = response.data
                 } else {
-                    _isLoggedIn.value = true
-                    val response = apiService.getBookmarks("Bearer $token")
-                    if (response.status) {
-                        _bookmarks.value = response.data
-                    } else {
-                        _errorMessage.value = "Gagal memuat bookmark"
-                    }
+                    _errorMessage.value = "Gagal memuat bookmark"
                 }
             } catch (e: Exception) {
                 _errorMessage.value = "Gagal memuat data. Periksa koneksi internetmu."
             } finally {
                 _isLoading.value = false
+            }
+        }
+    }
+
+    fun loadBookmarks() {
+        viewModelScope.launch {
+            val token = tokenDataStore.token.first()
+            if (!token.isNullOrEmpty()) {
+                fetchBookmarks()
+            } else {
+                _bookmarks.value = emptyList()
+            }
+        }
+    }
+
+    fun toggleBookmark(wisataId: Int) {
+        viewModelScope.launch {
+            try {
+                val token = tokenDataStore.token.first()
+                if (token.isNullOrEmpty()) return@launch
+                val response = wisataRepository.toggleBookmark(wisataId)
+                if (response.status) {
+                    loadBookmarks()
+                }
+            } catch (e: Exception) {
+                _errorMessage.value = "Gagal mengubah bookmark"
             }
         }
     }

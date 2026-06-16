@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,7 +27,6 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.travelwaka.app.ui.components.*
 import com.travelwaka.app.ui.theme.*
-// ✏️ DIUBAH: import DetailWisataViewModel, hapus WisataViewModel
 import com.travelwaka.app.viewmodel.DetailWisataViewModel
 import com.travelwaka.app.ui.components.OsmMapView
 import com.travelwaka.app.network.model.Review
@@ -39,18 +39,16 @@ fun DetailWisataScreen(
     wisataId: String,
     onBack: () -> Unit,
     onWriteReview: () -> Unit,
-    onNavigateToLogin: () -> Unit = {},
-    // ✏️ DIUBAH: token tidak perlu lagi dikirim dari luar, VM baca sendiri dari DataStore
-    token: String? = null
+    onNavigateToLogin: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    // ✏️ DIUBAH: pakai Hilt DI
     val viewModel: DetailWisataViewModel = hiltViewModel()
     val reviewViewModel: ReviewViewModel = hiltViewModel()
     val reviews by reviewViewModel.reviews.collectAsState()
 
     val wisata by viewModel.wisata.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    val errorMessage by viewModel.errorMessage.collectAsState()
     val isBookmarked by viewModel.isBookmarked.collectAsState()
     val isLoggedIn by viewModel.isLoggedIn.collectAsState()
     val bookmarkMessage by viewModel.bookmarkMessage.collectAsState()
@@ -59,7 +57,6 @@ fun DetailWisataScreen(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var showLoginSheet by remember { mutableStateOf(false) }
 
-    // ✏️ DIUBAH: cukup satu LaunchedEffect, token tidak perlu dikirim manual
     LaunchedEffect(wisataId) {
         viewModel.loadDetail(wisataId.toIntOrNull() ?: 0)
         reviewViewModel.getReviews(wisataId.toIntOrNull() ?: 0)
@@ -73,7 +70,9 @@ fun DetailWisataScreen(
     }
 
     val photos = wisata?.photos ?: emptyList()
-    val pagerState = rememberPagerState(pageCount = { if (photos.isEmpty()) 1 else photos.size })
+    val pagerState = key(photos.size) {
+        rememberPagerState(pageCount = { if (photos.isEmpty()) 1 else photos.size })
+    }
 
     // Bottom Sheet — muncul kalau user belum login lalu tap bookmark
     if (showLoginSheet) {
@@ -135,7 +134,7 @@ fun DetailWisataScreen(
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Primary)
                 ) {
-                    Icon(Icons.Filled.Login, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Icon(Icons.AutoMirrored.Filled.Login, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Login Sekarang", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                 }
@@ -158,9 +157,30 @@ fun DetailWisataScreen(
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = Primary)
                 }
-            } else if (wisata == null) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Gagal memuat data wisata", color = TextSecondary)
+            } else if (errorMessage != null || wisata == null) {
+                Column(
+                    modifier = Modifier.fillMaxSize().padding(24.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = errorMessage ?: "Gagal memuat data wisata",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = TextSecondary,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = {
+                            viewModel.clearError()
+                            viewModel.loadDetail(wisataId.toIntOrNull() ?: 0)
+                            reviewViewModel.getReviews(wisataId.toIntOrNull() ?: 0)
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Primary),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("Coba Lagi", color = White)
+                    }
                 }
             } else {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
@@ -191,13 +211,13 @@ fun DetailWisataScreen(
                                 onClick = onBack,
                                 modifier = Modifier.padding(12.dp).background(Color.Black.copy(alpha = 0.3f), CircleShape)
                             ) {
-                                Icon(Icons.Filled.ArrowBack, contentDescription = "Back", tint = White)
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = White)
                             }
 
                             // Dot indicator
                             if (photos.size > 1) {
                                 Row(
-                                    modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 8.dp),
+                                    modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 30.dp),
                                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
                                     repeat(photos.size) { index ->
@@ -208,6 +228,22 @@ fun DetailWisataScreen(
                                                 .background(if (pagerState.currentPage == index) White else White.copy(alpha = 0.5f))
                                         )
                                     }
+                                }
+
+                                // Numeric indicator badge
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.BottomEnd)
+                                        .padding(bottom = 26.dp, end = 16.dp)
+                                        .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                                ) {
+                                    Text(
+                                        text = "${pagerState.currentPage + 1}/${photos.size}",
+                                        color = White,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
                                 }
                             }
                         }
@@ -241,7 +277,6 @@ fun DetailWisataScreen(
                                         }
                                     }
                                     Row {
-                                        // ✏️ DIUBAH: cek isLoggedIn dari VM, bukan token dari parameter
                                         IconButton(onClick = {
                                             if (!isLoggedIn) {
                                                 showLoginSheet = true
@@ -284,7 +319,7 @@ fun DetailWisataScreen(
                                 }
 
                                 Spacer(modifier = Modifier.height(16.dp))
-                                Divider(color = DividerColor)
+                                HorizontalDivider(color = DividerColor)
                                 Spacer(modifier = Modifier.height(16.dp))
 
                                 // Jam operasional
@@ -297,7 +332,7 @@ fun DetailWisataScreen(
                                 }
 
                                 Spacer(modifier = Modifier.height(16.dp))
-                                Divider(color = DividerColor)
+                                HorizontalDivider(color = DividerColor)
                                 Spacer(modifier = Modifier.height(16.dp))
 
                                 // Deskripsi
@@ -306,7 +341,7 @@ fun DetailWisataScreen(
                                 Text(wisata!!.description ?: "-", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
 
                                 Spacer(modifier = Modifier.height(16.dp))
-                                Divider(color = DividerColor)
+                                HorizontalDivider(color = DividerColor)
                                 Spacer(modifier = Modifier.height(16.dp))
 
                                 // Tombol Get Direction
@@ -331,7 +366,7 @@ fun DetailWisataScreen(
                                     OutlinedButton(
                                         onClick = {
                                             val uri = android.net.Uri.parse(
-                                                "google.navigation:q=${wisata!!.latitude},${wisata!!.longitude}&mode=d"
+                                                "https://www.google.com/maps/dir/?api=1&destination=${wisata!!.latitude},${wisata!!.longitude}"
                                             )
                                             val intent = android.content.Intent(
                                                 android.content.Intent.ACTION_VIEW, uri
@@ -351,7 +386,7 @@ fun DetailWisataScreen(
                                 }
 
                                 Spacer(modifier = Modifier.height(16.dp))
-                                Divider(color = DividerColor)
+                                HorizontalDivider(color = DividerColor)
                                 Spacer(modifier = Modifier.height(16.dp))
 
                                 // Header ulasan
@@ -369,7 +404,7 @@ fun DetailWisataScreen(
                         }
                     }
 
-                    // List review (masih dummy, nanti diganti ReviewViewModel)
+                    // List review
                     if (reviews.isEmpty()) {
                         item {
                             Box(

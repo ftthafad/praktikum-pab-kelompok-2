@@ -32,6 +32,12 @@ import com.travelwaka.app.ui.theme.*
 import com.travelwaka.app.viewmodel.PengelolaWisataViewModel
 import com.travelwaka.app.viewmodel.WisataViewModel
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.ui.viewinterop.AndroidView
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.MapView
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,8 +49,6 @@ fun FormWisataScreen(
     wisataViewModel: WisataViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
-    val tokenDataStore = remember { TokenDataStore.getInstance(context) }
-    val token by tokenDataStore.token.collectAsState(initial = null)
 
     val isEditMode = wisataId.isNotEmpty()
 
@@ -69,6 +73,46 @@ fun FormWisataScreen(
     var selectedCategoryName by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
 
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var showMapPicker by remember { mutableStateOf(false) }
+
+    var namaWisataError by remember { mutableStateOf<String?>(null) }
+    var lokasiError by remember { mutableStateOf<String?>(null) }
+    var categoryError by remember { mutableStateOf<String?>(null) }
+    var hargaTiketError by remember { mutableStateOf<String?>(null) }
+
+    fun validateFormLocal(): Boolean {
+        var isValid = true
+        if (namaWisata.isBlank()) {
+            namaWisataError = "Nama wisata tidak boleh kosong"
+            isValid = false
+        } else {
+            namaWisataError = null
+        }
+
+        if (lokasi.isBlank()) {
+            lokasiError = "Lokasi tidak boleh kosong"
+            isValid = false
+        } else {
+            lokasiError = null
+        }
+
+        if (selectedCategoryId == 0) {
+            categoryError = "Kategori wisata harus dipilih"
+            isValid = false
+        } else {
+            categoryError = null
+        }
+
+        if (hargaTiket.isBlank()) {
+            hargaTiketError = "Harga tiket tidak boleh kosong"
+            isValid = false
+        } else {
+            hargaTiketError = null
+        }
+        return isValid
+    }
+
     // Foto yang sudah ada (mode edit)
     var existingPhotos by remember { mutableStateOf<List<Photo>>(emptyList()) }
 
@@ -79,12 +123,14 @@ fun FormWisataScreen(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
-            token?.let { tok ->
+            if (isEditMode) {
                 val id = wisataId.toIntOrNull() ?: return@let
-                pengelolaViewModel.uploadFoto(context, tok, id, it) {
+                pengelolaViewModel.uploadFoto(context, id, it) {
                     // Refresh detail wisata setelah upload
                     pengelolaViewModel.loadWisataForEdit(id)
                 }
+            } else {
+                selectedImageUri = it
             }
         }
     }
@@ -93,8 +139,7 @@ fun FormWisataScreen(
     LaunchedEffect(Unit) {
         wisataViewModel.getCategories()
         if (isEditMode) {
-            val id = wisataId.toIntOrNull() ?: return@LaunchedEffect
-            token?.let { pengelolaViewModel.getWisataSaya(it) }
+            pengelolaViewModel.getWisataSaya()
         }
     }
 
@@ -129,9 +174,19 @@ fun FormWisataScreen(
         successMessage?.let {
             snackbarHostState.showSnackbar(it)
             pengelolaViewModel.clearMessages()
-            // Hanya navigate back jika bukan sukses upload foto
-            if (!it.contains("foto", ignoreCase = true)) {
-                onSave()
+            if (isEditMode) {
+                // Hanya navigate back jika bukan sukses upload foto
+                if (!it.contains("foto", ignoreCase = true)) {
+                    onSave()
+                }
+            } else {
+                // Dalam mode tambah baru, jika tidak ada foto, langsung kembali.
+                // Jika ada foto, kita tunggu sampai foto ter-upload (pesan sukses mengandung "foto") baru kembali.
+                if (selectedImageUri == null) {
+                    onSave()
+                } else if (it.contains("foto", ignoreCase = true)) {
+                    onSave()
+                }
             }
         }
     }
@@ -155,7 +210,7 @@ fun FormWisataScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack, enabled = !isSaving) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -218,9 +273,9 @@ fun FormWisataScreen(
                             // Tombol hapus foto
                             IconButton(
                                 onClick = {
-                                    token?.let { tok ->
-                                        val id = wisataId.toIntOrNull() ?: return@let
-                                        pengelolaViewModel.deleteFoto(tok, id, photo.id) {
+                                    val id = wisataId.toIntOrNull()
+                                    if (id != null) {
+                                        pengelolaViewModel.deleteFoto(id, photo.id) {
                                             existingPhotos = existingPhotos.filter { it.id != photo.id }
                                         }
                                     }
@@ -283,14 +338,35 @@ fun FormWisataScreen(
                         .clip(RoundedCornerShape(16.dp))
                         .background(PrimaryLight.copy(alpha = 0.3f))
                         .border(2.dp, PrimaryMedium, RoundedCornerShape(16.dp))
-                        .then(
-                            if (isEditMode) Modifier.clickable { imagePickerLauncher.launch("image/*") }
-                            else Modifier
-                        ),
+                        .clickable { imagePickerLauncher.launch("image/*") },
                     contentAlignment = Alignment.Center
                 ) {
                     if (isUploading) {
                         CircularProgressIndicator(color = Primary)
+                    } else if (selectedImageUri != null) {
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            AsyncImage(
+                                model = selectedImageUri,
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                            // Tombol hapus foto
+                            IconButton(
+                                onClick = { selectedImageUri = null },
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .size(24.dp)
+                                    .background(ErrorColor, RoundedCornerShape(4.dp))
+                            ) {
+                                Icon(
+                                    Icons.Filled.Close,
+                                    contentDescription = "Hapus foto",
+                                    tint = White,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
+                        }
                     } else {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(
@@ -301,7 +377,7 @@ fun FormWisataScreen(
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                if (isEditMode) "Tap untuk upload foto" else "Foto bisa diupload setelah wisata tersimpan",
+                                "Tap untuk memilih foto sampul",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = Primary,
                                 fontWeight = FontWeight.Medium
@@ -328,18 +404,28 @@ fun FormWisataScreen(
 
             FormField(
                 value = namaWisata,
-                onValueChange = { namaWisata = it },
+                onValueChange = { 
+                    namaWisata = it 
+                    if (namaWisataError != null) namaWisataError = null
+                },
                 label = "Nama Wisata",
                 icon = Icons.Filled.Landscape,
-                enabled = !isSaving
+                enabled = !isSaving,
+                isError = namaWisataError != null,
+                errorText = namaWisataError
             )
 
             FormField(
                 value = lokasi,
-                onValueChange = { lokasi = it },
+                onValueChange = { 
+                    lokasi = it 
+                    if (lokasiError != null) lokasiError = null
+                },
                 label = "Lokasi / Alamat",
                 icon = Icons.Filled.LocationOn,
-                enabled = !isSaving
+                enabled = !isSaving,
+                isError = lokasiError != null,
+                errorText = lokasiError
             )
 
             // Dropdown Kategori dari API
@@ -353,7 +439,7 @@ fun FormWisataScreen(
                     readOnly = true,
                     label = { Text("Kategori") },
                     leadingIcon = {
-                        Icon(Icons.Filled.Category, contentDescription = null, tint = Primary)
+                        Icon(Icons.Filled.Category, contentDescription = null, tint = if (categoryError != null) ErrorColor else Primary)
                     },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                     modifier = Modifier
@@ -364,7 +450,13 @@ fun FormWisataScreen(
                         focusedBorderColor = Primary,
                         focusedLabelColor = Primary
                     ),
-                    enabled = !isSaving
+                    enabled = !isSaving,
+                    isError = categoryError != null,
+                    supportingText = {
+                        if (categoryError != null) {
+                            Text(categoryError!!, color = ErrorColor)
+                        }
+                    }
                 )
                 ExposedDropdownMenu(
                     expanded = expanded,
@@ -376,6 +468,7 @@ fun FormWisataScreen(
                             onClick = {
                                 selectedCategoryId = category.id
                                 selectedCategoryName = category.name
+                                if (categoryError != null) categoryError = null
                                 expanded = false
                             }
                         )
@@ -405,10 +498,15 @@ fun FormWisataScreen(
 
             FormField(
                 value = hargaTiket,
-                onValueChange = { hargaTiket = it },
+                onValueChange = { 
+                    hargaTiket = it 
+                    if (hargaTiketError != null) hargaTiketError = null
+                },
                 label = "Harga Tiket (contoh: Rp 20.000 atau Gratis)",
                 icon = Icons.Filled.ConfirmationNumber,
-                enabled = !isSaving
+                enabled = !isSaving,
+                isError = hargaTiketError != null,
+                errorText = hargaTiketError
             )
 
             HorizontalDivider(color = DividerColor)
@@ -513,43 +611,72 @@ fun FormWisataScreen(
                 )
             }
 
+            OutlinedButton(
+                onClick = { showMapPicker = true },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = Primary),
+                border = BorderStroke(1.dp, Primary)
+            ) {
+                Icon(Icons.Filled.Map, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Pilih Lokasi di Peta", fontWeight = FontWeight.Bold)
+            }
+
+            if (showMapPicker) {
+                OsmMapPickerDialog(
+                    initialLatitude = latitude.toDoubleOrNull(),
+                    initialLongitude = longitude.toDoubleOrNull(),
+                    onDismiss = { showMapPicker = false },
+                    onLocationSelected = { lat, lng ->
+                        latitude = lat.toString()
+                        longitude = lng.toString()
+                        showMapPicker = false
+                    }
+                )
+            }
+
             Spacer(modifier = Modifier.height(8.dp))
 
             // ── Tombol Simpan ─────────────────────────────────────────────────
             Button(
                 onClick = {
-                    val openingHours = if (jamBuka.isNotBlank() && jamTutup.isNotBlank())
-                        "$jamBuka - $jamTutup" else jamBuka
+                    if (validateFormLocal()) {
+                        val openingHours = if (jamBuka.isNotBlank() && jamTutup.isNotBlank())
+                            "$jamBuka - $jamTutup" else jamBuka
 
-                    token?.let { tok ->
-                        if (isEditMode) {
-                            pengelolaViewModel.updateWisata(
-                                token = tok,
-                                wisataId = wisataId.toInt(),
-                                name = namaWisata,
-                                description = deskripsi,
-                                location = lokasi,
-                                latitude = latitude.toDoubleOrNull(),
-                                longitude = longitude.toDoubleOrNull(),
-                                price = hargaTiket,
-                                openingHours = openingHours,
-                                categoryId = selectedCategoryId,
-                                onSuccess = {}
-                            )
-                        } else {
-                            pengelolaViewModel.tambahWisata(
-                                token = tok,
-                                name = namaWisata,
-                                description = deskripsi,
-                                location = lokasi,
-                                latitude = latitude.toDoubleOrNull(),
-                                longitude = longitude.toDoubleOrNull(),
-                                price = hargaTiket,
-                                openingHours = openingHours,
-                                categoryId = selectedCategoryId,
-                                onSuccess = {}
-                            )
-                        }
+                            if (isEditMode) {
+                                pengelolaViewModel.updateWisata(
+                                    wisataId = wisataId.toInt(),
+                                    name = namaWisata,
+                                    description = deskripsi,
+                                    location = lokasi,
+                                    latitude = latitude.toDoubleOrNull(),
+                                    longitude = longitude.toDoubleOrNull(),
+                                    price = hargaTiket,
+                                    openingHours = openingHours,
+                                    categoryId = selectedCategoryId,
+                                    onSuccess = {}
+                                )
+                            } else {
+                                pengelolaViewModel.tambahWisata(
+                                    name = namaWisata,
+                                    description = deskripsi,
+                                    location = lokasi,
+                                    latitude = latitude.toDoubleOrNull(),
+                                    longitude = longitude.toDoubleOrNull(),
+                                    price = hargaTiket,
+                                    openingHours = openingHours,
+                                    categoryId = selectedCategoryId,
+                                    onSuccess = { newId ->
+                                        selectedImageUri?.let { uri ->
+                                            pengelolaViewModel.uploadFoto(context, newId, uri) {
+                                                // Success callback
+                                            }
+                                        }
+                                    }
+                                )
+                            }
                     }
                 },
                 modifier = Modifier
@@ -557,11 +684,7 @@ fun FormWisataScreen(
                     .height(52.dp),
                 shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Primary),
-                enabled = namaWisata.isNotBlank()
-                        && selectedCategoryId != 0
-                        && lokasi.isNotBlank()
-                        && hargaTiket.isNotBlank()
-                        && !isSaving
+                enabled = !isSaving
             ) {
                 if (isSaving) {
                     CircularProgressIndicator(
@@ -586,6 +709,136 @@ fun FormWisataScreen(
             Spacer(modifier = Modifier.height(8.dp))
         }
     }
+}
+
+@Composable
+fun OsmMapPickerDialog(
+    initialLatitude: Double?,
+    initialLongitude: Double?,
+    onDismiss: () -> Unit,
+    onLocationSelected: (Double, Double) -> Unit
+) {
+    val context = LocalContext.current
+
+    // Initialize OSM Configuration
+    LaunchedEffect(Unit) {
+        org.osmdroid.config.Configuration.getInstance().userAgentValue = context.packageName
+    }
+
+    val defaultLat = -7.7956 // Yogyakarta default
+    val defaultLng = 110.3695
+
+    val startLat = initialLatitude ?: defaultLat
+    val startLng = initialLongitude ?: defaultLng
+
+    var centerLat by remember { mutableStateOf(startLat) }
+    var centerLng by remember { mutableStateOf(startLng) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Pilih Lokasi Wisata",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(350.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "Geser peta untuk mengarahkan pin di tengah ke lokasi yang tepat.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextSecondary
+                )
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .clip(RoundedCornerShape(12.dp))
+                        .border(1.dp, DividerColor, RoundedCornerShape(12.dp))
+                ) {
+                    // OSM Map
+                    AndroidView(
+                        factory = { ctx ->
+                            org.osmdroid.views.MapView(ctx).apply {
+                                setTileSource(org.osmdroid.tileprovider.tilesource.TileSourceFactory.MAPNIK)
+                                setMultiTouchControls(true)
+                                controller.setZoom(16.5)
+                                controller.setCenter(org.osmdroid.util.GeoPoint(startLat, startLng))
+
+                                // Update center coordinates when map gestures complete / moves
+                                addMapListener(object : org.osmdroid.events.MapListener {
+                                    override fun onScroll(event: org.osmdroid.events.ScrollEvent?): Boolean {
+                                        val center = mapCenter
+                                        centerLat = center.latitude
+                                        centerLng = center.longitude
+                                        return true
+                                    }
+
+                                    override fun onZoom(event: org.osmdroid.events.ZoomEvent?): Boolean {
+                                        val center = mapCenter
+                                        centerLat = center.latitude
+                                        centerLng = center.longitude
+                                        return true
+                                    }
+                                })
+                            }
+                        },
+                        modifier = Modifier.fillMaxSize()
+                    )
+
+                    // Fixed Pin in Center of Box
+                    Icon(
+                        imageVector = Icons.Filled.LocationOn,
+                        contentDescription = "Pilih lokasi ini",
+                        tint = ErrorColor,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .align(Alignment.Center)
+                            .offset(y = (-20).dp) // Offset pin so the tip points to center
+                    )
+                }
+
+                // Show current coordinates
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "Lat: ${String.format("%.6f", centerLat)}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextSecondary
+                    )
+                    Text(
+                        text = "Lng: ${String.format("%.6f", centerLng)}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextSecondary
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    onLocationSelected(centerLat, centerLng)
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = Primary)
+            ) {
+                Text("Selesai")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Batal", color = TextSecondary)
+            }
+        }
+    )
 }
 
 @Preview(showBackground = true)
