@@ -82,7 +82,15 @@ export default function ProfilePage() {
       icon: 'info',
       iconClass: 'modal-icon-info',
       title: 'Tentang TravelWaka',
-      body: 'Aplikasi ini dibuat untuk memudahkan wisatawan menjelajahi destinasi terbaik di Jawa Tengah.\n\nVersi 1.0.0 (Beta)\n© 2026 Kelompok 2. All Rights Reserved.',
+      body: (
+        <>
+          Aplikasi ini dibuat untuk memudahkan wisatawan menjelajahi destinasi terbaik di Jawa Tengah.
+          <br /><br />
+          <span style={{ fontWeight: 300, fontSize: '12px', color: '#9ca3af' }}>
+            Versi 1.0.0 (Beta) &copy; 2026 Kelompok 2. All Rights Reserved.
+          </span>
+        </>
+      ),
       confirmText: 'Tutup',
       cancelText: null,
     });
