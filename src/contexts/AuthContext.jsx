@@ -44,7 +44,9 @@ export function AuthProvider({ children }) {
   }, []);
 
   const logout = useCallback(() => {
-    Object.values(KEYS).forEach(key => localStorage.removeItem(key));
+    Object.entries(KEYS).forEach(([name, key]) => {
+      if (name !== 'ONBOARDING_SEEN') localStorage.removeItem(key);
+    });
     setUser(null);
   }, []);
 

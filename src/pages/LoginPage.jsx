@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import * as API from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
+import googleLogo from '../assets/logo-google.png';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -138,7 +139,7 @@ export default function LoginPage() {
           {googleLoading ? (
             <><div className="spinner" style={{ width: '18px', height: '18px', borderWidth: '2px' }}></div> Menghubungkan...</>
           ) : (
-            <><span className="btn-google-letter">G</span><span>Masuk dengan Google</span></>
+            <><img src={googleLogo} alt="Google" className="btn-google-icon" /><span>Masuk dengan Google</span></>
           )}
         </button>
 
