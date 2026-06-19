@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import * as API from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
+import LocationPickerMap from '../components/LocationPickerMap';
 
 export default function FormWisataPage() {
   const { id: wisataId } = useParams();
@@ -165,17 +166,15 @@ export default function FormWisataPage() {
                 value={location} onChange={(e) => setLocation(e.target.value)} />
             </div>
 
-            <div className="form-row">
-              <div className="form-group">
-                <label className="form-label" htmlFor="fw-lat">Latitude</label>
-                <input type="number" step="any" className="form-input" id="fw-lat" placeholder="-6.12345"
-                  value={latitude} onChange={(e) => setLatitude(e.target.value)} />
-              </div>
-              <div className="form-group">
-                <label className="form-label" htmlFor="fw-lng">Longitude</label>
-                <input type="number" step="any" className="form-input" id="fw-lng" placeholder="110.12345"
-                  value={longitude} onChange={(e) => setLongitude(e.target.value)} />
-              </div>
+            <div className="form-group">
+              <LocationPickerMap
+                latitude={latitude}
+                longitude={longitude}
+                onLocationSelect={(lat, lng) => {
+                  setLatitude(String(lat));
+                  setLongitude(String(lng));
+                }}
+              />
             </div>
 
             <div className="form-row">
