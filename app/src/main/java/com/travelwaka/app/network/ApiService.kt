@@ -28,7 +28,7 @@ interface ApiService {
     @GET("auth/me")
     suspend fun me(): MeResponse
 
-    // ✅ Wisata
+    //  Wisata
     @GET("wisata")
     suspend fun getWisata(): WisataListResponse
 
@@ -42,7 +42,7 @@ interface ApiService {
         @Path("categoryId") categoryId: Int
     ): WisataListResponse
 
-    // ✅ Categories
+    // Categories
     @GET("categories")
     suspend fun getCategories(): CategoryListResponse
 

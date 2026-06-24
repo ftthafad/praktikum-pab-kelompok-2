@@ -24,7 +24,7 @@ android {
             localProperties.load(fis)
         }
     }
-    val baseUrl = localProperties.getProperty("BASE_URL") ?: "https://unicycle-portside-ungloved.ngrok-free.dev/api/"
+    val baseUrl = localProperties.getProperty("BASE_URL") ?: "https://travelwaka-backend-production.up.railway.app/api/"
     val googleClientId = localProperties.getProperty("GOOGLE_CLIENT_ID") ?: ""
 
     defaultConfig {
