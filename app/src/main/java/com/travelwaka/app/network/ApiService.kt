@@ -6,7 +6,7 @@ import retrofit2.http.*
 
 interface ApiService {
 
-    // ✅ Auth
+    // Auth
     @POST("auth/register")
     suspend fun register(
         @Body request: RegisterRequest

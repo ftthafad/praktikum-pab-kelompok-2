@@ -198,7 +198,7 @@ fun DetailWisataScreen(
                                     }
                                 } else {
                                     AsyncImage(
-                                        model = photos[page].photo_url,
+                                        model = photos[page].photoUrl,
                                         contentDescription = null,
                                         contentScale = ContentScale.Crop,
                                         modifier = Modifier.fillMaxSize()
@@ -328,7 +328,7 @@ fun DetailWisataScreen(
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(Icons.Filled.AccessTime, contentDescription = null, tint = Primary, modifier = Modifier.size(16.dp))
                                     Spacer(modifier = Modifier.width(6.dp))
-                                    Text(wisata!!.opening_hours ?: "Tidak tersedia", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
+                                    Text(wisata!!.openingHours ?: "Tidak tersedia", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
                                 }
 
                                 Spacer(modifier = Modifier.height(16.dp))

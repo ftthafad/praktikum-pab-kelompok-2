@@ -43,8 +43,10 @@ fun ExploreScreen(
     val bookmarkedIds by viewModel.bookmarkedIds.collectAsState()
     val isLoggedIn by viewModel.isLoggedIn.collectAsState()
 
-    LaunchedEffect(Unit) {
-        viewModel.loadBookmarks()
+    LaunchedEffect(currentRoute) {
+        if (currentRoute == com.travelwaka.app.ui.navigation.Explore) {
+            viewModel.refreshData()
+        }
     }
 
     Scaffold(

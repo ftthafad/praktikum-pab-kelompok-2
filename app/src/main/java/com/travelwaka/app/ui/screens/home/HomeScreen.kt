@@ -59,8 +59,10 @@ fun HomeScreen(
 
     val pagerState = rememberPagerState(pageCount = { bannerImages.size })
 
-    LaunchedEffect(Unit) {
-        viewModel.loadBookmarks()
+    LaunchedEffect(currentRoute) {
+        if (currentRoute == com.travelwaka.app.ui.navigation.Home) {
+            viewModel.refreshData()
+        }
     }
 
 

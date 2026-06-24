@@ -22,49 +22,49 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.travelwaka.app.datastore.TokenDataStore
+import com.travelwaka.app.R
 import com.travelwaka.app.ui.theme.*
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.travelwaka.app.viewmodel.NavigationViewModel
 import kotlinx.coroutines.launch
 
 data class OnboardingPage(
     val title: String,
     val description: String,
-    val imageUrl: String
+    val imageRes: Int
 )
 
 val onboardingPages = listOf(
     OnboardingPage(
         title = "Jelajahi Wisata Jawa Tengah",
         description = "Temukan ratusan destinasi wisata terbaik di Jawa Tengah dalam genggaman tanganmu.",
-        imageUrl = "https://images.unsplash.com/photo-1596402184320-417e7178b2cd?w=800"
+        imageRes = R.drawable.onboarding1
     ),
     OnboardingPage(
         title = "Informasi Lengkap & Terpercaya",
         description = "Dapatkan info harga tiket, jam operasional, fasilitas, dan lokasi wisata secara akurat.",
-        imageUrl = "https://images.unsplash.com/photo-1555400038-63f5ba517a47?w=800"
+        imageRes = R.drawable.onboarding2
     ),
     OnboardingPage(
         title = "Rencanakan Perjalananmu",
         description = "Simpan destinasi favorit, baca ulasan wisatawan, dan bagikan pengalamanmu.",
-        imageUrl = "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800"
+        imageRes = R.drawable.onboarding3
     )
 )
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun OnboardingScreen(onFinish: () -> Unit) {
-    val context = LocalContext.current
-    val tokenDataStore = remember { TokenDataStore(context) }
+fun OnboardingScreen(
+    onFinish: () -> Unit,
+    viewModel: NavigationViewModel = hiltViewModel()
+) {
     val pagerState = rememberPagerState(pageCount = { onboardingPages.size })
     val scope = rememberCoroutineScope()
 
     // Fungsi selesai onboarding
     val finishOnboarding = {
-        scope.launch {
-            android.util.Log.d("Onboarding", "setOnboardingDone dipanggil")
-            tokenDataStore.setOnboardingDone()
-            onFinish()
-        }
+        viewModel.setOnboardingDone()
+        onFinish()
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -75,7 +75,7 @@ fun OnboardingScreen(onFinish: () -> Unit) {
             val item = onboardingPages[page]
             Box(modifier = Modifier.fillMaxSize()) {
                 AsyncImage(
-                    model = item.imageUrl,
+                    model = item.imageRes,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()

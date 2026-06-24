@@ -66,7 +66,9 @@ class AuthViewModel @Inject constructor(
                     }
                 }
             } catch (e: Exception) {
-                // ignore
+                if (com.travelwaka.app.BuildConfig.DEBUG) {
+                    android.util.Log.w("AuthViewModel", "Failed to load user profile", e)
+                }
             }
         }
     }
@@ -210,7 +212,9 @@ class AuthViewModel @Inject constructor(
                     authRepository.logout()
                 }
             } catch (e: Exception) {
-                // ignore error logout dari server
+                if (com.travelwaka.app.BuildConfig.DEBUG) {
+                    android.util.Log.w("AuthViewModel", "Failed to logout on server side", e)
+                }
             } finally {
                 tokenDataStore.clearAuth()
                 _isSuccess.value = false

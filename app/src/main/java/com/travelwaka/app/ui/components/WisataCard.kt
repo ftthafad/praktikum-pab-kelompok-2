@@ -21,18 +21,6 @@ import coil.compose.AsyncImage
 import com.travelwaka.app.network.model.Wisata
 import com.travelwaka.app.ui.theme.*
 
-// ✅ Tetap ada untuk backward compatibility (dummy data)
-data class WisataItem(
-    val id: String,
-    val name: String,
-    val location: String,
-    val category: String,
-    val rating: Float,
-    val price: String,
-    val imageUrl: String,
-    val isBookmarked: Boolean = false
-)
-
 // ✅ WisataCard pakai model Wisata dari API
 @Composable
 fun WisataCard(
@@ -42,8 +30,8 @@ fun WisataCard(
     isBookmarked: Boolean = false,
     modifier: Modifier = Modifier
 ) {
-    val imageUrl = wisata.cover_photo?.photo_url
-        ?: wisata.photos?.firstOrNull()?.photo_url
+    val imageUrl = wisata.coverPhoto?.photoUrl
+        ?: wisata.photos?.firstOrNull()?.photoUrl
         ?: ""
 
     Card(
@@ -158,8 +146,8 @@ fun WisataListCard(
     isBookmarked: Boolean = false,
     modifier: Modifier = Modifier
 ) {
-    val imageUrl = wisata.cover_photo?.photo_url
-        ?: wisata.photos?.firstOrNull()?.photo_url
+    val imageUrl = wisata.coverPhoto?.photoUrl
+        ?: wisata.photos?.firstOrNull()?.photoUrl
         ?: ""
 
     Card(

@@ -2,7 +2,7 @@ package com.travelwaka.app.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.travelwaka.app.data.repository.WisataRepository
+import com.travelwaka.app.data.repository.PengajuanRepository
 import com.travelwaka.app.network.model.Pengajuan
 import com.travelwaka.app.network.model.RejectRequest
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -14,7 +14,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class DashboardApprovalViewModel @Inject constructor(
-    private val wisataRepository: WisataRepository
+    private val pengajuanRepository: PengajuanRepository
 ) : ViewModel() {
 
     private val _pengajuanList = MutableStateFlow<List<Pengajuan>>(emptyList())
@@ -38,7 +38,7 @@ class DashboardApprovalViewModel @Inject constructor(
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                val response = wisataRepository.getSemuaPengajuan()
+                val response = pengajuanRepository.getSemuaPengajuan()
                 if (response.status) {
                     _pengajuanList.value = response.data ?: emptyList()
                 } else {
@@ -58,7 +58,7 @@ class DashboardApprovalViewModel @Inject constructor(
             _processingId.value = pengajuanId
             _errorMessage.value = null
             try {
-                val response = wisataRepository.approvePengajuan(pengajuanId)
+                val response = pengajuanRepository.approvePengajuan(pengajuanId)
                 if (response.status) {
                     // Hapus dari list setelah disetujui
                     _pengajuanList.value = _pengajuanList.value.filter { it.id != pengajuanId }
@@ -84,7 +84,7 @@ class DashboardApprovalViewModel @Inject constructor(
             _processingId.value = pengajuanId
             _errorMessage.value = null
             try {
-                val response = wisataRepository.rejectPengajuan(
+                val response = pengajuanRepository.rejectPengajuan(
                     id = pengajuanId,
                     request = RejectRequest(catatanAdmin = catatan)
                 )

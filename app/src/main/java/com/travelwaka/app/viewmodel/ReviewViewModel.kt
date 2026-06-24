@@ -2,7 +2,7 @@ package com.travelwaka.app.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.travelwaka.app.data.repository.WisataRepository
+import com.travelwaka.app.data.repository.ReviewRepository
 import com.travelwaka.app.network.model.Review
 import com.travelwaka.app.network.model.ReviewRequest
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -14,7 +14,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ReviewViewModel @Inject constructor(
-    private val wisataRepository: WisataRepository
+    private val reviewRepository: ReviewRepository
 ) : ViewModel() {
 
     // Daftar review publik untuk sebuah wisata
@@ -42,7 +42,7 @@ class ReviewViewModel @Inject constructor(
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                val response = wisataRepository.getReviews(wisataId)
+                val response = reviewRepository.getReviews(wisataId)
                 if (response.status) {
                     _reviews.value = response.data ?: emptyList()
                 } else {
@@ -60,7 +60,7 @@ class ReviewViewModel @Inject constructor(
     fun checkMyReview(wisataId: Int) {
         viewModelScope.launch {
             try {
-                val response = wisataRepository.checkReview(wisataId)
+                val response = reviewRepository.checkReview(wisataId)
                 _myReview.value = response.data
             } catch (e: Exception) {
                 _myReview.value = null
@@ -78,7 +78,7 @@ class ReviewViewModel @Inject constructor(
             _isSubmitting.value = true
             _errorMessage.value = null
             try {
-                val response = wisataRepository.submitReview(
+                val response = reviewRepository.submitReview(
                     wisataId = wisataId,
                     request = ReviewRequest(rating = rating, comment = comment?.ifBlank { null })
                 )
@@ -102,7 +102,7 @@ class ReviewViewModel @Inject constructor(
         viewModelScope.launch {
             _isSubmitting.value = true
             try {
-                val response = wisataRepository.deleteReview(wisataId)
+                val response = reviewRepository.deleteReview(wisataId)
                 if (response.status) {
                     _myReview.value = null
                     _successMessage.value = "Ulasan berhasil dihapus"

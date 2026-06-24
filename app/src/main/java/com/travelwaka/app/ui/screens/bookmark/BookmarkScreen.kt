@@ -31,8 +31,10 @@ fun BookmarkScreen(
     val isLoggedIn by viewModel.isLoggedIn.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
-    LaunchedEffect(Unit) {
-        viewModel.loadBookmarks()
+    LaunchedEffect(currentRoute) {
+        if (currentRoute == com.travelwaka.app.ui.navigation.Bookmark) {
+            viewModel.loadBookmarks()
+        }
     }
 
     Scaffold(

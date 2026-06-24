@@ -1,22 +1,24 @@
 package com.travelwaka.app.network.model
 
+import com.google.gson.annotations.SerializedName
+
 data class Wisata(
     val id: Int,
-    val user_id: Int,
-    val category_id: Int,
+    @SerializedName("user_id") val userId: Int,
+    @SerializedName("category_id") val categoryId: Int,
     val name: String,
     val description: String,
     val location: String,
     val latitude: Double?,
     val longitude: Double?,
     val price: String,
-    val opening_hours: String?,
+    @SerializedName("opening_hours") val openingHours: String?,
     val rating: Float,
-    val review_count: Int,
+    @SerializedName("review_count") val reviewCount: Int,
     val category: Category?,
     val photos: List<Photo>?,
-    val cover_photo: Photo?,
-    val created_at: String?
+    @SerializedName("cover_photo") val coverPhoto: Photo?,
+    @SerializedName("created_at") val createdAt: String?
 )
 
 data class Category(
@@ -27,7 +29,7 @@ data class Category(
 
 data class Photo(
     val id: Int,
-    val wisata_id: Int,
-    val photo_url: String,
-    val is_cover: Int  // ← ganti dari Boolean ke Int
+    @SerializedName("wisata_id") val wisataId: Int,
+    @SerializedName("photo_url") val photoUrl: String,
+    @SerializedName("is_cover") val isCover: Boolean
 )

@@ -24,14 +24,12 @@ class TokenDataStore(private val context: Context) {
 
     // Simpan token & data user setelah login
     suspend fun saveAuth(token: String, role: String, name: String, email: String) {
-        android.util.Log.d("DataStore", "Menyimpan: token=$token, role=$role")
         context.dataStore.edit { prefs ->
             prefs[TOKEN_KEY] = token
             prefs[USER_ROLE_KEY] = role
             prefs[USER_NAME_KEY] = name
             prefs[USER_EMAIL_KEY] = email
         }
-        android.util.Log.d("DataStore", "Selesai menyimpan")
     }
     // Ambil status onboarding
     val hasSeenOnboarding: Flow<Boolean?> = context.dataStore.data.map { prefs ->
@@ -46,9 +44,7 @@ class TokenDataStore(private val context: Context) {
     }
     // Ambil token
     val token: Flow<String?> = context.dataStore.data.map { prefs ->
-        val t = prefs[TOKEN_KEY]
-        android.util.Log.d("DataStore", "token dibaca: $t")
-        t
+        prefs[TOKEN_KEY]
     }
 
     // Ambil role
@@ -68,8 +64,6 @@ class TokenDataStore(private val context: Context) {
 
     // Hapus semua data saat logout
     suspend fun clearAuth() {
-        android.util.Log.d("DataStore", "clearAuth dipanggil!")
-        android.util.Log.d("DataStore", Thread.currentThread().stackTrace.joinToString("\n"))
         context.dataStore.edit { prefs ->
             prefs.remove(TOKEN_KEY)
             prefs.remove(USER_ROLE_KEY)

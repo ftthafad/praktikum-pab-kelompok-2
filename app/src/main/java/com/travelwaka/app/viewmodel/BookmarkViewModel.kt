@@ -3,7 +3,8 @@ package com.travelwaka.app.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.travelwaka.app.datastore.TokenDataStore
-import com.travelwaka.app.data.repository.WisataRepository
+import com.travelwaka.app.data.repository.BookmarkRepository
+import com.travelwaka.app.data.BookmarkManager
 import com.travelwaka.app.network.model.BookmarkItem
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,7 +20,8 @@ import javax.inject.Inject
 @HiltViewModel
 class BookmarkViewModel @Inject constructor(
     private val tokenDataStore: TokenDataStore,
-    private val wisataRepository: WisataRepository
+    private val bookmarkRepository: BookmarkRepository,
+    private val bookmarkManager: BookmarkManager
 ) : ViewModel() {
 
     // --- State: daftar bookmark yang dimiliki user ---
@@ -42,10 +44,11 @@ class BookmarkViewModel @Inject constructor(
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
-    // Inisialisasi: cek token secara reaktif lalu load bookmark jika sudah login
+    // Inisialisasi: amati perubahan bookmark IDs secara reaktif dan muat ulang list
     init {
         viewModelScope.launch {
-            tokenDataStore.token.collect { token ->
+            bookmarkManager.bookmarkedIds.collect { ids ->
+                val token = tokenDataStore.token.first()
                 if (!token.isNullOrEmpty()) {
                     fetchBookmarks()
                 } else {
@@ -59,7 +62,7 @@ class BookmarkViewModel @Inject constructor(
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                val response = wisataRepository.getBookmarks()
+                val response = bookmarkRepository.getBookmarks()
                 if (response.status) {
                     _bookmarks.value = response.data
                 } else {
@@ -86,15 +89,9 @@ class BookmarkViewModel @Inject constructor(
 
     fun toggleBookmark(wisataId: Int) {
         viewModelScope.launch {
-            try {
-                val token = tokenDataStore.token.first()
-                if (token.isNullOrEmpty()) return@launch
-                val response = wisataRepository.toggleBookmark(wisataId)
-                if (response.status) {
-                    loadBookmarks()
-                }
-            } catch (e: Exception) {
-                _errorMessage.value = "Gagal mengubah bookmark"
+            val result = bookmarkManager.toggleBookmark(wisataId)
+            if (result.isFailure) {
+                _errorMessage.value = result.exceptionOrNull()?.message ?: "Gagal mengubah bookmark"
             }
         }
     }

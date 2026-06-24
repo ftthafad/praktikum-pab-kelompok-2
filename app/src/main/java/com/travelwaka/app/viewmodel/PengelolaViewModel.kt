@@ -5,6 +5,8 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.travelwaka.app.data.repository.WisataRepository
+import com.travelwaka.app.data.repository.PengelolaRepository
+import com.travelwaka.app.network.model.Category
 import com.travelwaka.app.network.model.Wisata
 import com.travelwaka.app.network.model.WisataRequest
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,7 +21,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class PengelolaWisataViewModel @Inject constructor(
-    private val wisataRepository: WisataRepository
+    private val wisataRepository: WisataRepository,
+    private val pengelolaRepository: PengelolaRepository
 ) : ViewModel() {
 
     private val _wisataList = MutableStateFlow<List<Wisata>>(emptyList())
@@ -28,6 +31,9 @@ class PengelolaWisataViewModel @Inject constructor(
     // Wisata yang sedang diedit (null = mode tambah baru)
     private val _wisataDetail = MutableStateFlow<Wisata?>(null)
     val wisataDetail: StateFlow<Wisata?> = _wisataDetail.asStateFlow()
+
+    private val _categories = MutableStateFlow<List<Category>>(emptyList())
+    val categories: StateFlow<List<Category>> = _categories.asStateFlow()
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -49,7 +55,7 @@ class PengelolaWisataViewModel @Inject constructor(
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                val response = wisataRepository.getWisataSaya()
+                val response = pengelolaRepository.getWisataSaya()
                 if (response.status) {
                     _wisataList.value = response.data ?: emptyList()
                 } else {
@@ -68,9 +74,24 @@ class PengelolaWisataViewModel @Inject constructor(
         _wisataDetail.value = wisata
     }
 
-    // Ambil detail wisata by ID dari daftar yang sudah di-load
+    // Ambil detail wisata by ID langsung dari API/repository
     fun loadWisataForEdit(wisataId: Int) {
-        _wisataDetail.value = _wisataList.value.find { it.id == wisataId }
+        viewModelScope.launch {
+            _isLoading.value = true
+            _errorMessage.value = null
+            try {
+                val response = wisataRepository.getWisataDetail(wisataId)
+                if (response.status) {
+                    _wisataDetail.value = response.data
+                } else {
+                    _errorMessage.value = response.message
+                }
+            } catch (e: Exception) {
+                _errorMessage.value = "Gagal memuat detail wisata"
+            } finally {
+                _isLoading.value = false
+            }
+        }
     }
 
     // Tambah wisata baru
@@ -91,7 +112,7 @@ class PengelolaWisataViewModel @Inject constructor(
             _isSaving.value = true
             _errorMessage.value = null
             try {
-                val response = wisataRepository.tambahWisata(
+                val response = pengelolaRepository.tambahWisata(
                     request = WisataRequest(
                         name = name,
                         description = description,
@@ -136,7 +157,7 @@ class PengelolaWisataViewModel @Inject constructor(
             _isSaving.value = true
             _errorMessage.value = null
             try {
-                val response = wisataRepository.updateWisata(
+                val response = pengelolaRepository.updateWisata(
                     id = wisataId,
                     request = WisataRequest(
                         name = name,
@@ -168,7 +189,7 @@ class PengelolaWisataViewModel @Inject constructor(
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                val response = wisataRepository.deleteWisata(wisataId)
+                val response = pengelolaRepository.deleteWisata(wisataId)
                 if (response.status) {
                     _wisataList.value = _wisataList.value.filter { it.id != wisataId }
                     _successMessage.value = "Wisata berhasil dihapus"
@@ -203,7 +224,7 @@ class PengelolaWisataViewModel @Inject constructor(
                 val requestBody = bytes.toRequestBody(mimeType.toMediaTypeOrNull())
                 val part = MultipartBody.Part.createFormData("photo", "photo.jpg", requestBody)
 
-                val response = wisataRepository.uploadFotoWisata(
+                val response = pengelolaRepository.uploadFotoWisata(
                     wisataId = wisataId,
                     photo = part
                 )
@@ -214,7 +235,10 @@ class PengelolaWisataViewModel @Inject constructor(
                     _errorMessage.value = response.message
                 }
             } catch (e: Exception) {
-                _errorMessage.value = "Gagal mengupload foto"
+                if (com.travelwaka.app.BuildConfig.DEBUG) {
+                    android.util.Log.e("PengelolaVM", "Error uploading photo", e)
+                }
+                _errorMessage.value = "Gagal mengupload foto: ${e.localizedMessage ?: e.message}"
             } finally {
                 _isUploading.value = false
             }
@@ -225,7 +249,7 @@ class PengelolaWisataViewModel @Inject constructor(
     fun deleteFoto(wisataId: Int, photoId: Int, onSuccess: () -> Unit) {
         viewModelScope.launch {
             try {
-                val response = wisataRepository.deleteFotoWisata(wisataId, photoId)
+                val response = pengelolaRepository.deleteFotoWisata(wisataId, photoId)
                 if (response.status) {
                     _successMessage.value = "Foto berhasil dihapus"
                     onSuccess()
@@ -254,6 +278,19 @@ class PengelolaWisataViewModel @Inject constructor(
             openingHours.isBlank() -> { _errorMessage.value = "Jam operasional tidak boleh kosong"; false }
             categoryId == 0 -> { _errorMessage.value = "Pilih kategori wisata"; false }
             else -> true
+        }
+    }
+
+    fun getCategories() {
+        viewModelScope.launch {
+            try {
+                val response = wisataRepository.getCategories()
+                if (response.status) {
+                    _categories.value = response.data ?: emptyList()
+                }
+            } catch (e: Exception) {
+                _errorMessage.value = "Gagal memuat kategori"
+            }
         }
     }
 

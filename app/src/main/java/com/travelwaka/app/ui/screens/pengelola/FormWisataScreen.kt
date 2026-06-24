@@ -30,7 +30,6 @@ import com.travelwaka.app.network.model.Photo
 import com.travelwaka.app.ui.screens.profile.FormField
 import com.travelwaka.app.ui.theme.*
 import com.travelwaka.app.viewmodel.PengelolaWisataViewModel
-import com.travelwaka.app.viewmodel.WisataViewModel
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -45,8 +44,7 @@ fun FormWisataScreen(
     wisataId: String,
     onBack: () -> Unit,
     onSave: () -> Unit,
-    pengelolaViewModel: PengelolaWisataViewModel = hiltViewModel(),
-    wisataViewModel: WisataViewModel = hiltViewModel()
+    pengelolaViewModel: PengelolaWisataViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
 
@@ -58,7 +56,7 @@ fun FormWisataScreen(
     val isUploading by pengelolaViewModel.isUploading.collectAsState()
     val errorMessage by pengelolaViewModel.errorMessage.collectAsState()
     val successMessage by pengelolaViewModel.successMessage.collectAsState()
-    val categories by wisataViewModel.categories.collectAsState()
+    val categories by pengelolaViewModel.categories.collectAsState()
 
     // Form state
     var namaWisata by remember { mutableStateOf("") }
@@ -137,13 +135,10 @@ fun FormWisataScreen(
 
     // Load data awal
     LaunchedEffect(Unit) {
-        wisataViewModel.getCategories()
-        if (isEditMode) {
-            pengelolaViewModel.getWisataSaya()
-        }
+        pengelolaViewModel.getCategories()
     }
 
-    // Load data saat wisataList sudah terisi
+    // Load data saat masuk ke mode edit
     LaunchedEffect(isEditMode, wisataId) {
         if (isEditMode) {
             val id = wisataId.toIntOrNull() ?: return@LaunchedEffect
@@ -158,12 +153,12 @@ fun FormWisataScreen(
             deskripsi = w.description
             lokasi = w.location
             hargaTiket = w.price
-            val jam = w.opening_hours?.split("-") ?: listOf("", "")
+            val jam = w.openingHours?.split("-") ?: listOf("", "")
             jamBuka = jam.getOrNull(0)?.trim() ?: ""
             jamTutup = jam.getOrNull(1)?.trim() ?: ""
             latitude = w.latitude?.toString() ?: ""
             longitude = w.longitude?.toString() ?: ""
-            selectedCategoryId = w.category_id
+            selectedCategoryId = w.categoryId
             selectedCategoryName = w.category?.name ?: ""
             existingPhotos = w.photos ?: emptyList()
         }
@@ -240,13 +235,13 @@ fun FormWisataScreen(
                 color = TextPrimary
             )
 
-            if (isEditMode && existingPhotos.isNotEmpty()) {
+            if (isEditMode) {
                 // Tampilkan foto yang sudah ada + tombol hapus
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     items(existingPhotos, key = { it.id }) { photo ->
                         Box(modifier = Modifier.size(100.dp)) {
                             AsyncImage(
-                                model = photo.photo_url,
+                                model = photo.photoUrl,
                                 contentDescription = null,
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier
@@ -254,7 +249,7 @@ fun FormWisataScreen(
                                     .clip(RoundedCornerShape(10.dp))
                             )
                             // Badge cover
-                            if (photo.is_cover == 1) {
+                            if (photo.isCover) {
                                 Surface(
                                     modifier = Modifier
                                         .align(Alignment.BottomStart)

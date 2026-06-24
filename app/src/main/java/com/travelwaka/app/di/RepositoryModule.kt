@@ -22,4 +22,28 @@ abstract class RepositoryModule {
     abstract fun bindWisataRepository(
         wisataRepositoryImpl: WisataRepositoryImpl
     ): WisataRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindBookmarkRepository(
+        bookmarkRepositoryImpl: BookmarkRepositoryImpl
+    ): BookmarkRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindReviewRepository(
+        reviewRepositoryImpl: ReviewRepositoryImpl
+    ): ReviewRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindPengajuanRepository(
+        pengajuanRepositoryImpl: PengajuanRepositoryImpl
+    ): PengajuanRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindPengelolaRepository(
+        pengelolaRepositoryImpl: PengelolaRepositoryImpl
+    ): PengelolaRepository
 }

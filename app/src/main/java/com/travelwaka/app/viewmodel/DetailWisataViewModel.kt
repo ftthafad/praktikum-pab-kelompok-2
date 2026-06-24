@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.travelwaka.app.datastore.TokenDataStore
 import com.travelwaka.app.data.repository.WisataRepository
+import com.travelwaka.app.data.BookmarkManager
 import com.travelwaka.app.network.model.Wisata
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,7 +17,8 @@ import javax.inject.Inject
 @HiltViewModel
 class DetailWisataViewModel @Inject constructor(
     private val tokenDataStore: TokenDataStore,
-    private val wisataRepository: WisataRepository
+    private val wisataRepository: WisataRepository,
+    private val bookmarkManager: BookmarkManager
 ) : ViewModel() {
 
     // --- State: data detail wisata ---
@@ -42,6 +44,18 @@ class DetailWisataViewModel @Inject constructor(
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
+    init {
+        // Amati perubahan bookmark IDs secara reaktif
+        viewModelScope.launch {
+            bookmarkManager.bookmarkedIds.collect { ids ->
+                val currentWisataId = _wisata.value?.id
+                if (currentWisataId != null) {
+                    _isBookmarked.value = ids.contains(currentWisataId)
+                }
+            }
+        }
+    }
+
     // Dipanggil dari screen saat wisataId tersedia
     fun loadDetail(wisataId: Int) {
         viewModelScope.launch {
@@ -59,8 +73,7 @@ class DetailWisataViewModel @Inject constructor(
                 val token = tokenDataStore.token.first()
                 if (!token.isNullOrEmpty()) {
                     _isLoggedIn.value = true
-                    val bookmarkResponse = wisataRepository.checkBookmark(wisataId)
-                    _isBookmarked.value = bookmarkResponse.isBookmarked
+                    _isBookmarked.value = bookmarkManager.bookmarkedIds.value.contains(wisataId)
                 } else {
                     _isLoggedIn.value = false
                 }
@@ -75,16 +88,13 @@ class DetailWisataViewModel @Inject constructor(
     // Dipanggil saat user tap icon bookmark
     fun toggleBookmark(wisataId: Int) {
         viewModelScope.launch {
-            try {
-                val token = tokenDataStore.token.first()
-                if (token.isNullOrEmpty()) return@launch
-                val response = wisataRepository.toggleBookmark(wisataId)
-                if (response.status) {
-                    _isBookmarked.value = response.isBookmarked
-                    _bookmarkMessage.value = response.message
-                }
-            } catch (e: Exception) {
-                _bookmarkMessage.value = "Gagal mengubah bookmark"
+            val result = bookmarkManager.toggleBookmark(wisataId)
+            if (result.isSuccess) {
+                val isBookmarkedResult = result.getOrNull() == true
+                _isBookmarked.value = isBookmarkedResult
+                _bookmarkMessage.value = if (isBookmarkedResult) "Wisata berhasil disimpan" else "Wisata dihapus dari bookmark"
+            } else {
+                _bookmarkMessage.value = result.exceptionOrNull()?.message ?: "Gagal mengubah bookmark"
             }
         }
     }

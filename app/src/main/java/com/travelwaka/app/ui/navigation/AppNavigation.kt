@@ -5,7 +5,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
-import com.travelwaka.app.datastore.TokenDataStore
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.travelwaka.app.viewmodel.NavigationViewModel
 import com.travelwaka.app.ui.screens.onboarding.OnboardingScreen
 import com.travelwaka.app.ui.screens.auth.LoginScreen
 import com.travelwaka.app.ui.screens.auth.RegisterScreen
@@ -69,33 +70,26 @@ data object DashboardApproval : NavKey
 // --- AppNavigation ---
 
 @Composable
-fun AppNavigation() {
-    val context = LocalContext.current
-    val tokenDataStore = remember { TokenDataStore(context) }
-
-    val hasSeenOnboarding by tokenDataStore.hasSeenOnboarding.collectAsState(initial = false)
-    val token by tokenDataStore.token.collectAsState(initial = null)
-    val userRole by tokenDataStore.userRole.collectAsState(initial = "")
-
-    android.util.Log.d("AppNav", "token: $token, role: $userRole, onboarding: $hasSeenOnboarding")
+fun AppNavigation(
+    viewModel: NavigationViewModel = hiltViewModel()
+) {
+    val hasSeenOnboarding by viewModel.hasSeenOnboarding.collectAsState()
+    val token by viewModel.token.collectAsState()
+    val userRole by viewModel.userRole.collectAsState()
 
     var startDestination by remember { mutableStateOf<NavKey?>(null) }
 
-    LaunchedEffect(Unit) {
-        tokenDataStore.token.collect { t ->
-            if (startDestination == null) {
-                val onboarding = hasSeenOnboarding
-                val role = userRole
-                startDestination = when {
-                    onboarding != true -> Onboarding
-                    !t.isNullOrEmpty() -> when (role) {
-                        "super_admin" -> DashboardApproval
-                        else -> Home
-                    }
-                    else -> Login
+    LaunchedEffect(hasSeenOnboarding, token, userRole) {
+        val t = token
+        if (t != null && startDestination == null) {
+            startDestination = when {
+                !hasSeenOnboarding -> Onboarding
+                t.isNotEmpty() -> when (userRole) {
+                    "super_admin" -> DashboardApproval
+                    else -> Home
                 }
+                else -> Login
             }
-            return@collect
         }
     }
 

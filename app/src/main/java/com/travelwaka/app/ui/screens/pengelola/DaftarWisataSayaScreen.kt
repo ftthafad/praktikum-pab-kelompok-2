@@ -221,8 +221,8 @@ fun PengelolaWisataCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
-    val imageUrl = wisata.cover_photo?.photo_url
-        ?: wisata.photos?.firstOrNull()?.photo_url
+    val imageUrl = wisata.coverPhoto?.photoUrl
+        ?: wisata.photos?.firstOrNull()?.photoUrl
         ?: ""
 
     Card(
@@ -267,35 +267,43 @@ fun PengelolaWisataCard(
                     fontWeight = FontWeight.Bold,
                     color = TextPrimary
                 )
-                Spacer(modifier = Modifier.height(4.dp))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                Spacer(modifier = Modifier.height(8.dp))
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Icon(
-                        Icons.Filled.LocationOn,
-                        contentDescription = null,
-                        tint = TextSecondary,
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Text(
-                        wisata.location,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = TextSecondary
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Icon(
-                        Icons.Filled.ConfirmationNumber,
-                        contentDescription = null,
-                        tint = Primary,
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Text(
-                        wisata.price,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Primary,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            Icons.Filled.LocationOn,
+                            contentDescription = null,
+                            tint = TextSecondary,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Text(
+                            wisata.location,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextSecondary
+                        )
+                    }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            Icons.Filled.ConfirmationNumber,
+                            contentDescription = null,
+                            tint = Primary,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Text(
+                            wisata.price,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Primary,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
                 }
                 Spacer(modifier = Modifier.height(12.dp))
                 Row(

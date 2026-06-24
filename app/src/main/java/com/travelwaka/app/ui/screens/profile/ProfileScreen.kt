@@ -274,20 +274,20 @@ fun ProfileUserContent(
         ) {
             StatCard(
                 modifier = Modifier.weight(1f),
-                count = currentUser?.bookmarks_count ?: 0,
+                count = currentUser?.bookmarksCount ?: 0,
                 label = "Bookmark",
                 icon = Icons.Filled.Bookmark
             )
             StatCard(
                 modifier = Modifier.weight(1f),
-                count = currentUser?.reviews_count ?: 0,
+                count = currentUser?.reviewsCount ?: 0,
                 label = "Ulasan",
                 icon = Icons.Filled.Star
             )
             if (userRole == "pengelola") {
                 StatCard(
                     modifier = Modifier.weight(1f),
-                    count = currentUser?.wisata_count ?: 0,
+                    count = currentUser?.wisataCount ?: 0,
                     label = "Wisata Saya",
                     icon = Icons.Filled.Map
                 )

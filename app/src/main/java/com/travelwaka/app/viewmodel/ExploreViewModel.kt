@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.travelwaka.app.datastore.TokenDataStore
 import com.travelwaka.app.data.repository.WisataRepository
+import com.travelwaka.app.data.BookmarkManager
 import com.travelwaka.app.network.model.Category
 import com.travelwaka.app.network.model.Wisata
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -21,12 +22,12 @@ import javax.inject.Inject
 @HiltViewModel
 class ExploreViewModel @Inject constructor(
     private val tokenDataStore: TokenDataStore,
-    private val wisataRepository: WisataRepository
+    private val wisataRepository: WisataRepository,
+    private val bookmarkManager: BookmarkManager
 ) : ViewModel() {
 
-    // --- State: daftar bookmark yang dimiliki user ---
-    private val _bookmarkedIds = MutableStateFlow<Set<Int>>(emptySet())
-    val bookmarkedIds: StateFlow<Set<Int>> = _bookmarkedIds.asStateFlow()
+    // --- State: daftar bookmark yang dimiliki user (shared via BookmarkManager) ---
+    val bookmarkedIds: StateFlow<Set<Int>> = bookmarkManager.bookmarkedIds
 
     // --- State: apakah user sudah login ---
     val isLoggedIn: StateFlow<Boolean> = tokenDataStore.token
@@ -84,40 +85,25 @@ class ExploreViewModel @Inject constructor(
 
     fun loadBookmarks() {
         viewModelScope.launch {
-            try {
-                val token = tokenDataStore.token.first()
-                if (!token.isNullOrEmpty()) {
-                    val response = wisataRepository.getBookmarks()
-                    if (response.status) {
-                        val ids = response.data.map { it.wisata.id }.toSet()
-                        _bookmarkedIds.value = ids
-                    }
-                } else {
-                    _bookmarkedIds.value = emptySet()
-                }
-            } catch (e: Exception) {
-                // ignore
-            }
+            bookmarkManager.loadBookmarks()
+        }
+    }
+
+    fun refreshData() {
+        loadBookmarks()
+        val currentCategory = _selectedCategoryId.value
+        if (currentCategory == null) {
+            loadAllWisata()
+        } else {
+            loadWisataByCategory(currentCategory)
         }
     }
 
     fun toggleBookmark(wisataId: Int) {
         viewModelScope.launch {
-            try {
-                val token = tokenDataStore.token.first()
-                if (token.isNullOrEmpty()) return@launch
-                val response = wisataRepository.toggleBookmark(wisataId)
-                if (response.status) {
-                    val currentIds = _bookmarkedIds.value.toMutableSet()
-                    if (response.isBookmarked) {
-                        currentIds.add(wisataId)
-                    } else {
-                        currentIds.remove(wisataId)
-                    }
-                    _bookmarkedIds.value = currentIds
-                }
-            } catch (e: Exception) {
-                _errorMessage.value = "Gagal mengubah bookmark"
+            val result = bookmarkManager.toggleBookmark(wisataId)
+            if (result.isFailure) {
+                _errorMessage.value = result.exceptionOrNull()?.message ?: "Gagal mengubah bookmark"
             }
         }
     }

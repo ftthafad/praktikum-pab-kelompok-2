@@ -2,7 +2,7 @@ package com.travelwaka.app.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.travelwaka.app.data.repository.WisataRepository
+import com.travelwaka.app.data.repository.PengajuanRepository
 import com.travelwaka.app.network.model.Pengajuan
 import com.travelwaka.app.network.model.PengajuanRequest
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -14,7 +14,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class PengajuanViewModel @Inject constructor(
-    private val wisataRepository: WisataRepository
+    private val pengajuanRepository: PengajuanRepository
 ) : ViewModel() {
 
     // Status pengajuan user yang sedang login
@@ -38,7 +38,7 @@ class PengajuanViewModel @Inject constructor(
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                val response = wisataRepository.getPengajuanStatus()
+                val response = pengajuanRepository.getPengajuanStatus()
                 _pengajuanStatus.value = response.data
             } catch (e: Exception) {
                 _pengajuanStatus.value = null
@@ -72,7 +72,7 @@ class PengajuanViewModel @Inject constructor(
             _isSubmitting.value = true
             _errorMessage.value = null
             try {
-                val response = wisataRepository.submitPengajuan(
+                val response = pengajuanRepository.submitPengajuan(
                     request = PengajuanRequest(
                         namaUsaha = namaUsaha,
                         deskripsi = deskripsi,

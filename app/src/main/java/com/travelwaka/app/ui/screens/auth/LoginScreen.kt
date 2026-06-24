@@ -231,7 +231,7 @@ fun LoginScreen(
                                 try {
                                     val googleIdOption = GetGoogleIdOption.Builder()
                                         .setFilterByAuthorizedAccounts(false)
-                                        .setServerClientId("1005594778345-eu52f1263rk8kpt0g85jkbk8bl4g6sc3.apps.googleusercontent.com")
+                                        .setServerClientId(com.travelwaka.app.BuildConfig.GOOGLE_CLIENT_ID)
                                         .build()
 
                                     val request = GetCredentialRequest.Builder()
